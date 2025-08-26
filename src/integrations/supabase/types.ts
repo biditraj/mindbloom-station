@@ -14,7 +14,151 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          receiver_id: string | null
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          receiver_id?: string | null
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          receiver_id?: string | null
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mood_logs: {
+        Row: {
+          ai_sentiment: string | null
+          ai_stress_level: number | null
+          created_at: string
+          id: string
+          mood_level: Database["public"]["Enums"]["mood_level"]
+          note: string | null
+          student_id: string
+        }
+        Insert: {
+          ai_sentiment?: string | null
+          ai_stress_level?: number | null
+          created_at?: string
+          id?: string
+          mood_level: Database["public"]["Enums"]["mood_level"]
+          note?: string | null
+          student_id: string
+        }
+        Update: {
+          ai_sentiment?: string | null
+          ai_stress_level?: number | null
+          created_at?: string
+          id?: string
+          mood_level?: Database["public"]["Enums"]["mood_level"]
+          note?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mood_logs_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recommendations: {
+        Row: {
+          content_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          mood_log_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["recommendation_type"]
+        }
+        Insert: {
+          content_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mood_log_id?: string | null
+          title: string
+          type: Database["public"]["Enums"]["recommendation_type"]
+        }
+        Update: {
+          content_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mood_log_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["recommendation_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recommendations_mood_log_id_fkey"
+            columns: ["mood_log_id"]
+            isOneToOne: false
+            referencedRelation: "mood_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          anonymous_id: string
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          anonymous_id: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          anonymous_id?: string
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +167,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      mood_level: "1" | "2" | "3" | "4" | "5"
+      recommendation_type:
+        | "breathing"
+        | "mindfulness"
+        | "activity"
+        | "video"
+        | "article"
+      user_role: "student" | "admin" | "mentor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +301,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      mood_level: ["1", "2", "3", "4", "5"],
+      recommendation_type: [
+        "breathing",
+        "mindfulness",
+        "activity",
+        "video",
+        "article",
+      ],
+      user_role: ["student", "admin", "mentor"],
+    },
   },
 } as const
