@@ -3,10 +3,23 @@ import * as tf from '@tensorflow/tfjs';
 // Cache for the trained model to avoid retraining
 let trainedModel: tf.Sequential | null = null;
 
-// Model storage key for localStorage
+// Model storage keys for localStorage
 const MODEL_STORAGE_KEY = 'localstorage://enhanced-mood-model';
 const MODEL_VERSION_KEY = 'enhanced-mood-model-version';
+const MODEL_METRICS_KEY = 'enhanced-mood-model-metrics';
 const CURRENT_MODEL_VERSION = '4.0'; // Enhanced architecture, expanded dataset, and advanced feature engineering
+
+// Interface for stored model metrics
+interface StoredModelMetrics {
+  trainingAccuracy: number;
+  validationAccuracy: number;
+  testAccuracy?: number;
+  trainingLoss: number;
+  trainingDataSize: number;
+  augmentedDataSize: number;
+  modelParams: number;
+  lastTrainingDate: string;
+}
 
 // Interface for prediction results
 export interface PredictionResult {
@@ -526,6 +539,20 @@ export async function trainModel(model: tf.Sequential | null = null): Promise<tf
       console.log(`   Validation accuracy: ${finalValAccuracy.toFixed(4)}`);
     }
     
+    // Store actual training metrics for accurate analytics
+    const metrics: StoredModelMetrics = {
+      trainingAccuracy: finalAccuracy,
+      validationAccuracy: finalValAccuracy || finalAccuracy,
+      trainingLoss: finalLoss,
+      trainingDataSize: ENHANCED_TRAINING_DATA.length,
+      augmentedDataSize: augmentedData.length,
+      modelParams: model.countParams(),
+      lastTrainingDate: new Date().toISOString()
+    };
+    
+    localStorage.setItem(MODEL_METRICS_KEY, JSON.stringify(metrics));
+    console.log('💾 Training metrics stored for analytics');
+    
     // Evaluate on test set if available
     if (testSet.length > 0) {
       const testFeatures = testSet.map(item => createFeatureVector(item.text, item.mood));
@@ -558,6 +585,10 @@ export async function trainModel(model: tf.Sequential | null = null): Promise<tf
       console.log(`   Recall: ${recall.toFixed(4)}`);
       console.log(`   F1-Score: ${f1Score.toFixed(4)}`);
       console.log(`   Confusion Matrix: [[${tn}, ${fp}], [${fn}, ${tp}]]`);
+      
+      // Update metrics with test accuracy
+      metrics.testAccuracy = testAccuracy;
+      localStorage.setItem(MODEL_METRICS_KEY, JSON.stringify(metrics));
       
       testXs.dispose();
       testYs.dispose();
@@ -640,11 +671,16 @@ export async function predictMood(text = '', moodLevel = '3'): Promise<Predictio
       stressLevel = 5;
     }
 
-    const modelAccuracy = 0.85 + (Math.random() * 0.1);
+    // Get actual model accuracy from training history or use stored metrics
+    const modelStatus = getModelStatus();
+    const modelAccuracy = modelStatus.lastTrainingAccuracy || 0.85;
+    
+    // Calculate actual confidence score (higher confidence for predictions farther from 0.5)
+    const actualConfidence = Math.abs(confidence - 0.5) * 2; // Converts 0-0.5-1 range to 0-1 confidence
 
     const result: PredictionResult = {
       sentiment,
-      confidence: Math.round(confidence * 100) / 100,
+      confidence: Math.round(actualConfidence * 100) / 100,
       stressLevel,
       modelAccuracy: Math.round(modelAccuracy * 100) / 100,
       sentimentPolarity: Math.round(sentimentPolarity * 100) / 100
@@ -688,7 +724,8 @@ export function clearModel(): void {
   
   try {
     localStorage.removeItem(MODEL_VERSION_KEY);
-    console.log('🗑️ Model cache and persistence cleared');
+    localStorage.removeItem(MODEL_METRICS_KEY);
+    console.log('🗑️ Model cache, metrics, and persistence cleared');
   } catch (error) {
     console.error('❌ Error clearing persisted model:', error);
   }
@@ -703,17 +740,29 @@ export function clearModel(): void {
 export function getModelStatus(): ModelStatus {
   const storedVersion = localStorage.getItem(MODEL_VERSION_KEY);
   const augmentedData = augmentData(ENHANCED_TRAINING_DATA);
+  
+  // Load actual stored metrics
+  let storedMetrics: StoredModelMetrics | null = null;
+  try {
+    const metricsData = localStorage.getItem(MODEL_METRICS_KEY);
+    if (metricsData) {
+      storedMetrics = JSON.parse(metricsData);
+    }
+  } catch (error) {
+    console.warn('Failed to load stored metrics:', error);
+  }
+  
   return {
     isModelCached: trainedModel !== null,
     isModelPersisted: storedVersion === CURRENT_MODEL_VERSION,
     modelVersion: storedVersion,
     backend: tf.getBackend(),
     memoryInfo: tf.memory(),
-    modelParams: trainedModel?.countParams(),
-    trainingDataSize: ENHANCED_TRAINING_DATA.length,
-    augmentedDataSize: augmentedData.length,
-    lastTrainingAccuracy: 0.89,
-    lastValidationAccuracy: 0.85
+    modelParams: storedMetrics?.modelParams || trainedModel?.countParams(),
+    trainingDataSize: storedMetrics?.trainingDataSize || ENHANCED_TRAINING_DATA.length,
+    augmentedDataSize: storedMetrics?.augmentedDataSize || augmentedData.length,
+    lastTrainingAccuracy: storedMetrics?.trainingAccuracy || 0.85,
+    lastValidationAccuracy: storedMetrics?.validationAccuracy || 0.82
   };
 }
 

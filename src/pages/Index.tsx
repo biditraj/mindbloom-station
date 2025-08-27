@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Navigation from '@/components/Navigation';
+import { useNavigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
 import MoodTracker from '@/components/MoodTracker';
-import InsightsPanel from '@/components/InsightsPanel';
-import PeerSupportChat from '@/components/PeerSupportChat';
-import AdminDashboard from '@/components/AdminDashboard';
 import Auth from './Auth';
 import { Loader2 } from 'lucide-react';
+import { type PredictionResult } from '@/lib/moodModel';
 
 const Index = () => {
   const { student, loading } = useAuth();
-  const [currentView, setCurrentView] = useState('mood');
+  const navigate = useNavigate();
   const [refreshInsights, setRefreshInsights] = useState(0);
+  const [latestAiAnalysis, setLatestAiAnalysis] = useState<PredictionResult | null>(null);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
 
-  const handleMoodLogged = () => {
+  const handleMoodLogged = (aiResult?: PredictionResult, moodLevel?: string) => {
+    if (aiResult) {
+      setLatestAiAnalysis(aiResult);
+    }
+    if (moodLevel) {
+      setSelectedMood(moodLevel);
+    }
     setRefreshInsights(prev => prev + 1);
-    setCurrentView('insights');
+    // Navigate to insights page after mood logging
+    navigate('/insights');
   };
 
   if (loading) {
@@ -33,31 +41,18 @@ const Index = () => {
     return <Auth />;
   }
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'mood':
-        return <MoodTracker onMoodLogged={handleMoodLogged} />;
-      case 'insights':
-        return <InsightsPanel key={refreshInsights} />;
-      case 'chat':
-        return <PeerSupportChat />;
-      case 'dashboard':
-        return <AdminDashboard />;
-      default:
-        return <MoodTracker onMoodLogged={handleMoodLogged} />;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/3 via-secondary/3 to-accent/3 calm-gradient">
-      <Navigation currentView={currentView} onViewChange={setCurrentView} />
-      
-      <main className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {renderCurrentView()}
+    <Layout>
+      <div className="p-4 bg-white/80 backdrop-blur-sm min-h-full">
+        <div className="mb-6 pb-4 border-b border-gray-200/60">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Mood Check-in</h1>
+          <p className="text-slate-600 text-sm">How are you feeling today? Track your mood and get personalized insights.</p>
         </div>
-      </main>
-    </div>
+        <div className="pb-8">
+          <MoodTracker onMoodLogged={handleMoodLogged} />
+        </div>
+      </div>
+    </Layout>
   );
 };
 

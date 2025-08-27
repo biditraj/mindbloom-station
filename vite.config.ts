@@ -19,4 +19,11 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    // Fix for simple-peer: global is not defined
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['simple-peer'],
+  },
 }));

@@ -34,7 +34,8 @@ serve(async (req) => {
       .from('mood_logs')
       .update({
         ai_sentiment: analysis.sentiment,
-        ai_stress_level: analysis.stressLevel
+        ai_stress_level: analysis.stressLevel,
+        ai_confidence: analysis.confidence
       })
       .eq('id', mood_log_id)
 
@@ -88,20 +89,25 @@ async function analyzeMood(moodLevel: string, note?: string) {
   // Simple AI-like analysis based on mood level and note content
   let sentiment = ""
   let stressLevel = 1
+  let confidence = 0.7 // Base confidence
 
   // Analyze based on mood level
   if (level <= 2) {
     sentiment = "You seem to be experiencing some difficult emotions today. Remember that it's normal to have ups and downs, and reaching out for support is a sign of strength."
     stressLevel = level === 1 ? 5 : 4
+    confidence = 0.8 // Higher confidence for extreme mood levels
   } else if (level === 3) {
     sentiment = "You're feeling okay today, which is perfectly normal. Consider some self-care activities to boost your mood a bit more."
     stressLevel = 3
+    confidence = 0.6 // Lower confidence for neutral mood
   } else if (level === 4) {
     sentiment = "You're feeling good today! This is a great foundation to build on. Keep up the positive momentum."
     stressLevel = 2
+    confidence = 0.75
   } else {
     sentiment = "You're feeling fantastic today! Your positive energy can be contagious - consider sharing some encouragement with peers."
     stressLevel = 1
+    confidence = 0.85 // Higher confidence for extreme mood levels
   }
 
   // Enhance analysis if there's a note
@@ -117,23 +123,30 @@ async function analyzeMood(moodLevel: string, note?: string) {
     const hasPositiveKeywords = positiveKeywords.some(keyword => noteWords.includes(keyword))
     const hasSadKeywords = sadKeywords.some(keyword => noteWords.includes(keyword))
     
+    // Increase confidence when we have text analysis
+    confidence = Math.min(0.95, confidence + 0.1)
+    
     if (hasStressKeywords) {
       stressLevel = Math.min(5, stressLevel + 1)
       sentiment += " I noticed you mentioned feeling stressed. Try some breathing exercises or take a short break."
+      confidence = Math.min(0.9, confidence + 0.05) // Higher confidence with keyword match
     }
     
     if (hasSadKeywords) {
       sentiment += " It sounds like you're going through a tough time. Consider reaching out to a friend or counselor."
+      confidence = Math.min(0.9, confidence + 0.05)
     }
     
     if (hasPositiveKeywords && level >= 3) {
       sentiment += " I can see you're focusing on positive aspects, which is wonderful for your mental health!"
+      confidence = Math.min(0.9, confidence + 0.05)
     }
   }
 
   return {
     sentiment,
-    stressLevel: Math.max(1, Math.min(5, stressLevel))
+    stressLevel: Math.max(1, Math.min(5, stressLevel)),
+    confidence: Math.round(confidence * 100) / 100 // Round to 2 decimal places
   }
 }
 

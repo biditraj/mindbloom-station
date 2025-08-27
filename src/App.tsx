@@ -7,6 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard.tsx";
+import MoodStatistics from "./pages/MoodStatistics";
+import History from "./pages/History";
+import Insights from "./pages/Insights";
+import Chat from "./pages/Chat";
+import DebugTest from "./pages/DebugTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +32,11 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/mood-statistics" element={<MoodStatistics />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/insights" element={<Insights />} />
+            <Route path="/chat" element={<Chat />} />
+            <Route path="/debug" element={<DebugTest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

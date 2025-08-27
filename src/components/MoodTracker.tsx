@@ -21,15 +21,100 @@ import {
 } from '@/lib/moodModel';
 
 const moodEmojis = [
-  { level: '1', emoji: '😢', icon: Frown, label: 'Very Low', color: 'text-red-500' },
-  { level: '2', emoji: '😕', icon: Frown, label: 'Low', color: 'text-orange-500' },
-  { level: '3', emoji: '😐', icon: Meh, label: 'Okay', color: 'text-yellow-500' },
-  { level: '4', emoji: '😊', icon: Smile, label: 'Good', color: 'text-green-500' },
-  { level: '5', emoji: '😄', icon: Sun, label: 'Great', color: 'text-emerald-500' }
+  { 
+    name: 'devastated', 
+    emoji: '😭', 
+    icon: Frown, 
+    label: 'Devastated', 
+    color: 'text-red-600',
+    bgColor: 'bg-red-50 hover:bg-red-100 border-red-200',
+    shadowColor: 'shadow-red-200',
+    description: 'Feeling overwhelmed and very sad'
+  },
+  { 
+    name: 'stressed', 
+    emoji: '😰', 
+    icon: Frown, 
+    label: 'Stressed', 
+    color: 'text-orange-600',
+    bgColor: 'bg-orange-50 hover:bg-orange-100 border-orange-200',
+    shadowColor: 'shadow-orange-200',
+    description: 'Feeling anxious and under pressure'
+  },
+  { 
+    name: 'sad', 
+    emoji: '😢', 
+    icon: Frown, 
+    label: 'Sad', 
+    color: 'text-blue-600',
+    bgColor: 'bg-blue-50 hover:bg-blue-100 border-blue-200',
+    shadowColor: 'shadow-blue-200',
+    description: 'Feeling down and melancholy'
+  },
+  { 
+    name: 'worried', 
+    emoji: '😟', 
+    icon: Meh, 
+    label: 'Worried', 
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200',
+    shadowColor: 'shadow-yellow-200',
+    description: 'Feeling concerned and uncertain'
+  },
+  { 
+    name: 'neutral', 
+    emoji: '😐', 
+    icon: Meh, 
+    label: 'Neutral', 
+    color: 'text-gray-600',
+    bgColor: 'bg-gray-50 hover:bg-gray-100 border-gray-200',
+    shadowColor: 'shadow-gray-200',
+    description: 'Feeling balanced and calm'
+  },
+  { 
+    name: 'content', 
+    emoji: '😌', 
+    icon: Smile, 
+    label: 'Content', 
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 hover:bg-green-100 border-green-200',
+    shadowColor: 'shadow-green-200',
+    description: 'Feeling peaceful and satisfied'
+  },
+  { 
+    name: 'happy', 
+    emoji: '😊', 
+    icon: Smile, 
+    label: 'Happy', 
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200',
+    shadowColor: 'shadow-emerald-200',
+    description: 'Feeling joyful and positive'
+  },
+  { 
+    name: 'excited', 
+    emoji: '😄', 
+    icon: Sun, 
+    label: 'Excited', 
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200',
+    shadowColor: 'shadow-cyan-200',
+    description: 'Feeling energetic and enthusiastic'
+  },
+  { 
+    name: 'euphoric', 
+    emoji: '🤩', 
+    icon: Sun, 
+    label: 'Euphoric', 
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 hover:bg-purple-100 border-purple-200',
+    shadowColor: 'shadow-purple-200',
+    description: 'Feeling absolutely amazing and elated'
+  }
 ];
 
 interface MoodTrackerProps {
-  onMoodLogged?: () => void;
+  onMoodLogged?: (aiResult?: PredictionResult, moodLevel?: string) => void;
 }
 
 // Enhanced recommendations mapping with icons
@@ -77,35 +162,31 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modelStatus, setModelStatus] = useState<ReturnType<typeof getModelStatus> | null>(null);
-  const [aiResult, setAiResult] = useState<PredictionResult | null>(null);
-  const [showAiResult, setShowAiResult] = useState(false);
-  const [recommendation, setRecommendation] = useState<EnhancedRecommendation | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [hoveredMood, setHoveredMood] = useState<string | null>(null);
   const { student } = useAuth();
   const { toast } = useToast();
 
-  // Load model status on component mount
+  // Load model status on component mount for development
   useEffect(() => {
-    const loadModelStatus = async (): Promise<void> => {
-      try {
-        const status = getModelStatus();
-        setModelStatus(status);
-        if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
+      const loadModelStatus = async (): Promise<void> => {
+        try {
+          const status = getModelStatus();
           console.log('🎯 Model Status:', status);
+        } catch (error) {
+          console.error('Error loading model status:', error);
         }
-      } catch (error) {
-        console.error('Error loading model status:', error);
-      }
-    };
-    loadModelStatus();
+      };
+      loadModelStatus();
+    }
   }, []);
 
   const handleSubmit = async () => {
     if (!selectedMood) {
       toast({
         title: "Please select your mood",
-        description: "Choose a mood level from 1 to 5 to continue",
+        description: "Choose how you're feeling to continue",
         variant: "destructive"
       });
       return;
@@ -122,9 +203,6 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
 
     try {
       setLoading(true);
-      setAiResult(null);
-      setShowAiResult(false);
-      setRecommendation(null);
       setAnalysisProgress(0);
 
       if (process.env.NODE_ENV === 'development') {
@@ -136,6 +214,21 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
         setAnalysisProgress(prev => Math.min(prev + 10, 90));
       }, 200);
       
+      // Map mood names to database mood levels (1-5)
+      const moodLevelMapping: Record<string, "1" | "2" | "3" | "4" | "5"> = {
+        'devastated': '1',
+        'stressed': '2', 
+        'sad': '2',
+        'worried': '3',
+        'neutral': '3',
+        'content': '4',
+        'happy': '4', 
+        'excited': '5',
+        'euphoric': '5'
+      };
+      
+      const moodLevel = moodLevelMapping[selectedMood] || '3';
+      
       // Train model and predict mood using enhanced TensorFlow.js
       if (process.env.NODE_ENV === 'development') {
         console.log('🏋️ Ensuring model is trained...');
@@ -146,35 +239,52 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       if (process.env.NODE_ENV === 'development') {
         console.log('🔮 Making enhanced prediction...');
       }
-      const prediction = await predictMood(note.trim(), selectedMood);
+      const prediction = await predictMood(note.trim(), moodLevel);
       setAnalysisProgress(80);
       
       if (process.env.NODE_ENV === 'development') {
         console.log('🎯 Enhanced AI Analysis Result:', prediction);
       }
-      setAiResult(prediction);
 
       // Generate enhanced recommendation based on stress level
       const enhancedRecommendation = getEnhancedRecommendationForStressLevel(prediction.stressLevel);
-      setRecommendation(enhancedRecommendation);
       setAnalysisProgress(100);
       
       clearInterval(progressInterval);
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📊 About to insert mood log with data:', {
+          student_id: student.id,
+          mood_name: selectedMood,
+          mood_level: moodLevel,
+          note: note.trim() || null,
+          ai_sentiment: prediction.sentiment,
+          ai_stress_level: prediction.stressLevel
+        });
+      }
 
       // Insert mood log with enhanced AI results
       const { data: moodLogData, error: moodLogError } = await supabase
         .from('mood_logs')
         .insert({
           student_id: student.id,
-          mood_level: selectedMood as "1" | "2" | "3" | "4" | "5",
+          mood_level: moodLevel,
           note: note.trim() || null,
           ai_sentiment: prediction.sentiment,
           ai_stress_level: prediction.stressLevel
+          // ai_confidence: prediction.confidence // TODO: Add after migration
         })
         .select()
         .single();
 
-      if (moodLogError) throw moodLogError;
+      if (moodLogError) {
+        console.error('❌ Database insert error:', moodLogError);
+        throw moodLogError;
+      }
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Mood log inserted successfully:', moodLogData);
+      }
 
       // Insert enhanced recommendation into Supabase
       const { error: recommendationError } = await supabase
@@ -191,15 +301,14 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
         console.warn('Failed to save recommendation:', recommendationError);
       }
 
-      // Show AI result with smooth animation
-      setTimeout(() => setShowAiResult(true), 100);
+
 
       // Also call the existing edge function for additional analysis
       try {
         await supabase.functions.invoke('analyze-mood', {
           body: { 
             mood_log_id: moodLogData.id,
-            mood_level: selectedMood,
+            mood_level: moodLevel,
             note: note.trim() || null
           }
         });
@@ -210,29 +319,54 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
         console.warn('⚠️ Edge function failed, but local AI analysis succeeded:', edgeFunctionError);
       }
 
+      const selectedMoodEmoji = moodEmojis.find(m => m.name === selectedMood);
+      
       toast({
         title: "Mood logged successfully! 🎉",
-        description: `AI analysis completed with ${prediction.sentiment} sentiment and personalized recommendations.`
+        description: `${selectedMoodEmoji?.emoji} Feeling ${selectedMoodEmoji?.label} - AI analysis completed with ${prediction.sentiment} sentiment and personalized recommendations.`
       });
 
-      // Reset form after showing results
-      setTimeout(() => {
-        setSelectedMood(null);
-        setNote('');
-        setAiResult(null);
-        setShowAiResult(false);
-        setRecommendation(null);
-        setAnalysisProgress(0);
-        
-        // Notify parent component
-        onMoodLogged?.();
-      }, 10000); // Extended time to show enhanced results
+      // Reset form and immediately notify parent with AI results
+      setSelectedMood(null);
+      setNote('');
+      setAnalysisProgress(0);
+      
+      // Notify parent component with AI analysis data
+      onMoodLogged?.(prediction, selectedMood);
 
     } catch (error) {
       console.error('❌ Error logging mood:', error);
+      
+      // Log detailed error information for debugging
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      
+      // Log current state for debugging
+      console.error('Debug info:', {
+        selectedMood,
+        noteLength: note.length,
+        studentExists: !!student,
+        studentId: student?.id
+      });
+      
+      let errorMessage = "Please try again";
+      if (error instanceof Error) {
+        if (error.message.includes('Network')) {
+          errorMessage = "Network connection issue. Please check your internet connection.";
+        } else if (error.message.includes('permission') || error.message.includes('denied')) {
+          errorMessage = "Database access denied. Please try logging in again.";
+        } else if (error.message.includes('constraint') || error.message.includes('invalid')) {
+          errorMessage = "Invalid data format. Please check your inputs.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Failed to log mood",
-        description: error instanceof Error ? error.message : "Please try again",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -245,6 +379,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="mb-8"
     >
       <Card className="mood-card shadow-lg border-2 border-blue-100">
         <CardHeader className="text-center bg-gradient-to-r from-blue-50 to-purple-50">
@@ -255,49 +390,144 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
           <CardDescription className="text-gray-600">
             Your daily check-in helps us understand your wellbeing with AI-powered insights
           </CardDescription>
-          {modelStatus && (
-            <div className="flex justify-center gap-2 mt-2">
-              <Badge variant={modelStatus.isModelPersisted ? "default" : "secondary"} className="text-xs">
-                🧠 Model v{modelStatus.modelVersion || 'Loading'}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                📊 {modelStatus.trainingDataSize} examples
-              </Badge>
-            </div>
-          )}
         </CardHeader>
         <CardContent className="space-y-6 p-6">
-          {/* Mood Selection */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-center flex items-center justify-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Select your mood level
-            </h3>
-            <div className="flex justify-center gap-3 flex-wrap">
+          {/* Enhanced Mood Selection */}
+          <div className="space-y-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                <Sparkles className="h-5 w-5 text-purple-600" />
+                How are you feeling?
+              </h3>
+              <p className="text-sm text-gray-600">Choose the emoji that best represents your current mood</p>
+            </div>
+            
+            {/* Mood Emoji Grid */}
+            <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
               {moodEmojis.map((mood, index) => (
                 <motion.button
-                  key={mood.level}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: index * 0.1, duration: 0.3 }}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedMood(mood.level)}
-                  className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-                    selectedMood === mood.level
-                      ? 'border-primary bg-primary/10 shadow-lg ring-2 ring-primary/30'
-                      : 'border-border hover:border-primary/50 hover:shadow-md'
+                  key={mood.name}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ 
+                    delay: index * 0.1, 
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 100 
+                  }}
+                  whileHover={{ 
+                    scale: 1.15, 
+                    rotate: [0, -5, 5, 0],
+                    transition: { duration: 0.3 }
+                  }}
+                  whileTap={{ scale: 0.9 }}
+                  onHoverStart={() => setHoveredMood(mood.name)}
+                  onHoverEnd={() => setHoveredMood(null)}
+                  onClick={() => setSelectedMood(mood.name)}
+                  className={`relative p-4 rounded-2xl border-2 transition-all duration-300 group ${
+                    selectedMood === mood.name
+                      ? `${mood.bgColor} border-4 border-current shadow-xl ${mood.shadowColor} ring-4 ring-opacity-30 transform scale-105`
+                      : `${mood.bgColor} border-gray-200 hover:border-current hover:shadow-lg`
                   }`}
                 >
                   <div className="text-center space-y-2">
-                    <div className="text-3xl">{mood.emoji}</div>
-                    <div className={`text-xs font-medium ${mood.color}`}>
+                    {/* Animated Emoji */}
+                    <motion.div 
+                      className="text-4xl select-none"
+                      animate={{
+                        scale: selectedMood === mood.name ? [1, 1.2, 1] : hoveredMood === mood.name ? 1.1 : 1,
+                        rotate: hoveredMood === mood.name ? [0, -3, 3, 0] : 0
+                      }}
+                      transition={{ duration: 0.5, repeat: selectedMood === mood.name ? Infinity : 0, repeatDelay: 1 }}
+                    >
+                      {mood.emoji}
+                    </motion.div>
+                    
+                    {/* Mood Label */}
+                    <div className={`text-sm font-semibold transition-colors duration-200 ${
+                      selectedMood === mood.name ? mood.color : 'text-gray-600 group-hover:' + mood.color
+                    }`}>
                       {mood.label}
                     </div>
                   </div>
+                  
+                  {/* Selection Indicator */}
+                  <AnimatePresence>
+                    {selectedMood === mood.name && (
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-md"
+                      >
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.1 }}
+                          className="text-white text-xs font-bold"
+                        >
+                          ✓
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  
+                  {/* Floating Particles Effect on Hover */}
+                  <AnimatePresence>
+                    {hoveredMood === mood.name && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 pointer-events-none"
+                      >
+                        {[...Array(3)].map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ scale: 0, x: '50%', y: '50%' }}
+                            animate={{ 
+                              scale: [0, 1, 0],
+                              x: `${50 + (Math.random() - 0.5) * 100}%`,
+                              y: `${50 + (Math.random() - 0.5) * 100}%`
+                            }}
+                            transition={{ 
+                              duration: 1,
+                              delay: i * 0.2,
+                              repeat: Infinity,
+                              repeatDelay: 1
+                            }}
+                            className={`absolute w-1 h-1 rounded-full bg-current opacity-60`}
+                            style={{ color: mood.color.replace('text-', '') }}
+                          />
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               ))}
             </div>
+            
+            {/* Mood Description */}
+            <AnimatePresence mode="wait">
+              {(hoveredMood || selectedMood) && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-center"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow-md border">
+                    <div className="text-lg">
+                      {moodEmojis.find(m => m.name === (hoveredMood || selectedMood))?.emoji}
+                    </div>
+                    <div className="text-sm text-gray-700 font-medium">
+                      {moodEmojis.find(m => m.name === (hoveredMood || selectedMood))?.description}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           {/* Optional Note */}
@@ -357,186 +587,6 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                     />
                   </div>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Enhanced AI Result Display */}
-          <AnimatePresence>
-            {aiResult && showAiResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
-              >
-                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 shadow-lg">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Brain className="h-6 w-6 text-blue-600" />
-                      <span className="font-bold text-blue-800 text-lg">Enhanced AI Analysis</span>
-                      <Sparkles className="h-5 w-5 text-purple-600" />
-                      <Badge variant="secondary" className="ml-auto">
-                        v{modelStatus?.modelVersion || '3.0'}
-                      </Badge>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-white rounded-lg p-3 border">
-                          <div className="text-sm text-gray-600 mb-1">Sentiment Analysis</div>
-                          <div className={`font-bold text-lg flex items-center gap-2 ${
-                            aiResult.sentiment.includes('positive') 
-                              ? 'text-green-700' 
-                              : aiResult.sentiment.includes('stress') 
-                              ? 'text-red-700'
-                              : 'text-yellow-700'
-                          }`}>
-                            {aiResult.sentiment.includes('positive') && '😊'}
-                            {aiResult.sentiment.includes('stress') && '⚠️'}
-                            {!aiResult.sentiment.includes('positive') && !aiResult.sentiment.includes('stress') && '😐'}
-                            <span className="capitalize">{aiResult.sentiment}</span>
-                          </div>
-                          {aiResult.sentimentPolarity !== undefined && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              Polarity: {aiResult.sentimentPolarity.toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="bg-white rounded-lg p-3 border">
-                          <div className="text-sm text-gray-600 mb-1">Stress Level</div>
-                          <div className="font-bold text-lg text-blue-700 flex items-center gap-2">
-                            <Zap className="h-5 w-5" />
-                            {aiResult.stressLevel}/5
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Confidence: {(aiResult.confidence * 100).toFixed(1)}%
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Enhanced Model Performance Display */}
-                      {aiResult.modelAccuracy && (
-                        <div className="bg-white rounded-lg p-3 border">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm text-gray-600">Model Performance</div>
-                            <Badge variant="outline" className="text-xs">
-                              Enhanced AI v4.0
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <div className="text-gray-500">Model Accuracy</div>
-                              <div className="font-semibold text-green-700">
-                                {(aiResult.modelAccuracy * 100).toFixed(1)}%
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-gray-500">Prediction Confidence</div>
-                              <div className="font-semibold text-blue-700">
-                                {(aiResult.confidence * 100).toFixed(1)}%
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>Stress Level Visualization</span>
-                          <span>{aiResult.stressLevel === 1 ? 'Very Low' : aiResult.stressLevel === 2 ? 'Low' : aiResult.stressLevel === 3 ? 'Moderate' : aiResult.stressLevel === 4 ? 'High' : 'Very High'}</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                          <motion.div 
-                            className={`h-3 rounded-full transition-all duration-1000 ${
-                              aiResult.stressLevel <= 2 ? 'bg-gradient-to-r from-green-400 to-green-500' :
-                              aiResult.stressLevel <= 3 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 
-                              'bg-gradient-to-r from-red-400 to-red-500'
-                            }`}
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(aiResult.stressLevel / 5) * 100}%` }}
-                            transition={{ duration: 1, delay: 0.3 }}
-                          />
-                        </div>
-                      </div>
-                      
-                      <motion.div 
-                        className="bg-white rounded-lg p-3 border-l-4 border-blue-400"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.5 }}
-                      >
-                        <p className="text-sm text-gray-700 leading-relaxed">
-                          {aiResult.sentiment.includes('positive') 
-                            ? 'Great! Your mood analysis shows positive indicators. Your mental state appears balanced and healthy. Keep maintaining these good vibes!' 
-                            : aiResult.stressLevel >= 4
-                            ? 'I notice significant stress indicators in your input. This suggests you might benefit from stress-reduction techniques or reaching out for support.'
-                            : 'Your mood shows some mixed signals. Consider taking time for self-care and mindfulness practices to maintain emotional balance.'}
-                        </p>
-                      </motion.div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Enhanced Personalized Recommendation */}
-          <AnimatePresence>
-            {recommendation && showAiResult && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.9 }}
-                transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-              >
-                <Card className={`bg-gradient-to-r ${recommendation.color} shadow-lg border-2`}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <recommendation.icon className="h-6 w-6 text-green-600" />
-                      <span className="font-bold text-green-800 text-lg">Personalized Recommendation</span>
-                      <Badge variant={recommendation.urgency === 'high' ? 'destructive' : recommendation.urgency === 'medium' ? 'default' : 'secondary'} className="ml-auto">
-                        {recommendation.urgency} priority
-                      </Badge>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="bg-white rounded-lg p-4 border">
-                        <h4 className="font-bold text-gray-900 text-lg mb-2 flex items-center gap-2">
-                          <Sparkles className="h-5 w-5 text-yellow-500" />
-                          {recommendation.title}
-                        </h4>
-                        <p className="text-gray-700 leading-relaxed mb-3">{recommendation.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Badge variant="outline">{recommendation.type}</Badge>
-                          <span className="text-xs">•</span>
-                          <span>Recommended for stress level {aiResult?.stressLevel}</span>
-                        </div>
-                      </div>
-                      {recommendation.content_url && (
-                        <motion.div
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <Button
-                            variant="default"
-                            size="lg"
-                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
-                            onClick={() => {
-                              if (recommendation.content_url?.startsWith('http')) {
-                                window.open(recommendation.content_url, '_blank');
-                              } else {
-                                window.location.href = recommendation.content_url!;
-                              }
-                            }}
-                          >
-                            <recommendation.icon className="h-5 w-5 mr-2" />
-                            Start Recommended Activity
-                            <Zap className="h-4 w-4 ml-2" />
-                          </Button>
-                        </motion.div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
               </motion.div>
             )}
           </AnimatePresence>

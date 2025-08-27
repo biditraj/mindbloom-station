@@ -4,222 +4,304 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Brain, Play, BookOpen, Activity, ExternalLink, Sparkles } from 'lucide-react';
+import { Brain, Play, BookOpen, Activity, ExternalLink, Sparkles, Zap, Video, Wind, MessageCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { type PredictionResult, getRecommendationMapping } from '@/lib/moodModel';
 
-interface MoodLog {
-  id: string;
-  mood_level: string;
-  ai_sentiment: string | null;
-  ai_stress_level: number | null;
-  created_at: string;
+interface InsightsPanelProps {
+  latestAiAnalysis?: PredictionResult | null;
+  selectedMood?: string | null;
 }
 
-interface Recommendation {
-  id: string;
+// Enhanced recommendations mapping with icons
+interface EnhancedRecommendation {
   title: string;
   description: string;
-  content_url: string;
+  content_url?: string;
   type: 'breathing' | 'mindfulness' | 'activity' | 'video' | 'article';
+  icon: React.ComponentType<any>;
+  color: string;
+  urgency: 'low' | 'medium' | 'high';
 }
 
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case 'breathing': return <Activity className="h-4 w-4" />;
-    case 'mindfulness': return <Brain className="h-4 w-4" />;
-    case 'activity': return <Play className="h-4 w-4" />;
-    case 'video': return <Play className="h-4 w-4" />;
-    case 'article': return <BookOpen className="h-4 w-4" />;
-    default: return <Sparkles className="h-4 w-4" />;
-  }
+const getEnhancedRecommendationForStressLevel = (stressLevel: number): EnhancedRecommendation => {
+  const mapping = getRecommendationMapping(stressLevel);
+  const iconMap = {
+    video: Video,
+    breathing: Wind,
+    mindfulness: Brain,
+    activity: Activity,
+    article: BookOpen
+  };
+  
+  const colorMap = {
+    1: 'from-green-50 to-emerald-50 border-green-200',
+    2: 'from-green-50 to-emerald-50 border-green-200', 
+    3: 'from-yellow-50 to-orange-50 border-yellow-200',
+    4: 'from-orange-50 to-red-50 border-orange-200',
+    5: 'from-red-50 to-red-100 border-red-300'
+  };
+  
+  return {
+    ...mapping.recommendation,
+    type: mapping.recommendation.type,
+    icon: iconMap[mapping.recommendation.type] || Brain,
+    color: colorMap[stressLevel as keyof typeof colorMap] || colorMap[3],
+    urgency: stressLevel <= 2 ? 'low' : stressLevel === 3 ? 'medium' : 'high'
+  };
 };
 
-const getTypeColor = (type: string) => {
-  switch (type) {
-    case 'breathing': return 'bg-blue-100 text-blue-800';
-    case 'mindfulness': return 'bg-purple-100 text-purple-800';
-    case 'activity': return 'bg-green-100 text-green-800';
-    case 'video': return 'bg-red-100 text-red-800';
-    case 'article': return 'bg-yellow-100 text-yellow-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
 
-const InsightsPanel: React.FC = () => {
-  const [recentMood, setRecentMood] = useState<MoodLog | null>(null);
-  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(true);
+const InsightsPanel: React.FC<InsightsPanelProps> = ({ latestAiAnalysis, selectedMood }) => {
+  const [enhancedRecommendation, setEnhancedRecommendation] = useState<EnhancedRecommendation | null>(null);
   const { student } = useAuth();
 
+  // Update enhanced recommendation when latest AI analysis changes
   useEffect(() => {
-    if (student) {
-      fetchInsights();
+    if (latestAiAnalysis) {
+      const recommendation = getEnhancedRecommendationForStressLevel(latestAiAnalysis.stressLevel);
+      setEnhancedRecommendation(recommendation);
     }
-  }, [student]);
+  }, [latestAiAnalysis]);
 
-  const fetchInsights = async () => {
-    if (!student) return;
 
-    try {
-      // Fetch most recent mood log
-      const { data: moodData, error: moodError } = await supabase
-        .from('mood_logs')
-        .select('*')
-        .eq('student_id', student.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (moodError && moodError.code !== 'PGRST116') {
-        console.error('Error fetching mood:', moodError);
-      } else if (moodData) {
-        setRecentMood(moodData);
-
-        // Fetch recommendations for this mood log
-        const { data: recData, error: recError } = await supabase
-          .from('recommendations')
-          .select('*')
-          .eq('mood_log_id', moodData.id);
-
-        if (recError) {
-          console.error('Error fetching recommendations:', recError);
-        } else if (recData && recData.length > 0) {
-          setRecommendations(recData);
-        } else {
-          // Fetch general recommendations based on mood level
-          const { data: generalRecs } = await supabase
-            .from('recommendations')
-            .select('*')
-            .is('mood_log_id', null)
-            .limit(3);
-          
-          if (generalRecs) {
-            setRecommendations(generalRecs);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error in fetchInsights:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getSentimentMessage = (mood: MoodLog) => {
-    const level = parseInt(mood.mood_level);
-    if (mood.ai_sentiment) {
-      return mood.ai_sentiment;
-    }
-    
-    // Fallback messages based on mood level
-    if (level <= 2) {
-      return "You seem to be going through a tough time. Remember, it's okay to not be okay.";
-    } else if (level === 3) {
-      return "You're managing okay today. Consider some self-care activities.";
-    } else {
-      return "You're feeling positive today! Keep up the good energy.";
-    }
-  };
-
-  if (loading) {
+  if (!latestAiAnalysis) {
     return (
       <div className="space-y-4">
-        <div className="mood-card animate-pulse">
-          <div className="h-32 bg-muted rounded"></div>
-        </div>
+        <Card className="mood-card">
+          <CardContent className="text-center py-8">
+            <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="font-medium mb-2">No insights available yet</h3>
+            <p className="text-muted-foreground text-sm mb-4">
+              To get personalized insights and AI-powered recommendations, you need to:
+            </p>
+            <div className="space-y-2 text-sm text-left max-w-md mx-auto">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span>Log your first mood using the Mood Check-in page</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Share some details about how you're feeling</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <span>Get AI-powered insights and personalized recommendations</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Sample insights preview */}
+        <Card className="mood-card border-dashed border-gray-300">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-yellow-500" />
+              Preview: What You'll Get
+            </CardTitle>
+            <CardDescription>
+              Here's an example of the insights you'll receive once you start logging your mood
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="bg-gray-50 rounded-lg p-3 border">
+                <div className="text-sm text-gray-600 mb-1">Sentiment Analysis</div>
+                <div className="font-bold text-lg text-green-700 flex items-center gap-2">
+                  😊 <span>Positive</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3 border">
+                <div className="text-sm text-gray-600 mb-1">Stress Level</div>
+                <div className="font-bold text-lg text-blue-700 flex items-center gap-2">
+                  <Zap className="h-5 w-5" />
+                  2/5
+                </div>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3 border">
+              <div className="text-sm text-gray-700">
+                💡 <strong>Personalized recommendations</strong> like guided meditations, breathing exercises, or motivational content based on your mood patterns.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    );
-  }
-
-  if (!recentMood) {
-    return (
-      <Card className="mood-card">
-        <CardContent className="text-center py-8">
-          <Brain className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="font-medium mb-2">No insights yet</h3>
-          <p className="text-muted-foreground text-sm">
-            Log your first mood to get personalized insights and recommendations.
-          </p>
-        </CardContent>
-      </Card>
     );
   }
 
   return (
     <div className="space-y-4 fade-in-up">
-      {/* AI Insights */}
-      <Card className="mood-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            AI Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="p-4 bg-secondary/20 rounded-lg">
-              <p className="text-sm mb-2">{getSentimentMessage(recentMood)}</p>
-              {recentMood.ai_stress_level && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Stress Level:</span>
-                  <Badge variant="outline">{recentMood.ai_stress_level}/5</Badge>
-                </div>
-              )}
+      {/* Enhanced AI Analysis Display */}
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
+        <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 shadow-lg mood-card">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Brain className="h-6 w-6 text-blue-600" />
+              <span className="font-bold text-blue-800 text-lg">Enhanced AI Analysis</span>
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <Badge variant="secondary" className="ml-auto">
+                v4.0
+              </Badge>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recommendations */}
-      {recommendations.length > 0 && (
-        <Card className="mood-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Recommended for You
-            </CardTitle>
-            <CardDescription>
-              Personalized activities to help boost your mood
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recommendations.map((rec, index) => (
-                <div
-                  key={rec.id}
-                  className="slide-in-right p-4 border border-border rounded-lg hover:bg-secondary/10 transition-colors"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="flex items-center gap-2 flex-1">
-                      {getTypeIcon(rec.type)}
-                      <div className="flex-1">
-                        <h4 className="font-medium text-sm">{rec.title}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {rec.description}
-                        </p>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-3 border">
+                  <div className="text-sm text-gray-600 mb-1">Sentiment Analysis</div>
+                  <div className={`font-bold text-lg flex items-center gap-2 ${
+                    latestAiAnalysis.sentiment.includes('positive') 
+                      ? 'text-green-700' 
+                      : latestAiAnalysis.sentiment.includes('stress') 
+                      ? 'text-red-700'
+                      : 'text-yellow-700'
+                  }`}>
+                    {latestAiAnalysis.sentiment.includes('positive') && '😊'}
+                    {latestAiAnalysis.sentiment.includes('stress') && '⚠️'}
+                    {!latestAiAnalysis.sentiment.includes('positive') && !latestAiAnalysis.sentiment.includes('stress') && '😐'}
+                    <span className="capitalize">{latestAiAnalysis.sentiment}</span>
+                  </div>
+                  {latestAiAnalysis.sentimentPolarity !== undefined && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      Polarity: {latestAiAnalysis.sentimentPolarity.toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white rounded-lg p-3 border">
+                  <div className="text-sm text-gray-600 mb-1">Stress Level</div>
+                  <div className="font-bold text-lg text-blue-700 flex items-center gap-2">
+                    <Zap className="h-5 w-5" />
+                    {latestAiAnalysis.stressLevel}/5
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Confidence: {(latestAiAnalysis.confidence * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+              
+              {/* Enhanced Model Performance Display */}
+              {latestAiAnalysis.modelAccuracy && (
+                <div className="bg-white rounded-lg p-3 border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm text-gray-600">Model Performance</div>
+                    <Badge variant="outline" className="text-xs">
+                      Enhanced AI v4.0
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-500">Model Accuracy</div>
+                      <div className="font-semibold text-green-700">
+                        {(latestAiAnalysis.modelAccuracy * 100).toFixed(1)}%
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant="secondary" 
-                        className={getTypeColor(rec.type)}
-                      >
-                        {rec.type}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => window.open(rec.content_url, '_blank')}
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                      </Button>
+                    <div>
+                      <div className="text-gray-500">Prediction Confidence</div>
+                      <div className="font-semibold text-blue-700">
+                        {(latestAiAnalysis.confidence * 100).toFixed(1)}%
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
+              
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Stress Level Visualization</span>
+                  <span>{latestAiAnalysis.stressLevel === 1 ? 'Very Low' : latestAiAnalysis.stressLevel === 2 ? 'Low' : latestAiAnalysis.stressLevel === 3 ? 'Moderate' : latestAiAnalysis.stressLevel === 4 ? 'High' : 'Very High'}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                  <motion.div 
+                    className={`h-3 rounded-full transition-all duration-1000 ${
+                      latestAiAnalysis.stressLevel <= 2 ? 'bg-gradient-to-r from-green-400 to-green-500' :
+                      latestAiAnalysis.stressLevel <= 3 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' : 
+                      'bg-gradient-to-r from-red-400 to-red-500'
+                    }`}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(latestAiAnalysis.stressLevel / 5) * 100}%` }}
+                    transition={{ duration: 1, delay: 0.3 }}
+                  />
+                </div>
+              </div>
+              
+              <motion.div 
+                className="bg-white rounded-lg p-3 border-l-4 border-blue-400"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {latestAiAnalysis.sentiment.includes('positive') 
+                    ? 'Great! Your mood analysis shows positive indicators. Your mental state appears balanced and healthy. Keep maintaining these good vibes!' 
+                    : latestAiAnalysis.stressLevel >= 4
+                    ? 'I notice significant stress indicators in your input. This suggests you might benefit from stress-reduction techniques or reaching out for support.'
+                    : 'Your mood shows some mixed signals. Consider taking time for self-care and mindfulness practices to maintain emotional balance.'}
+                </p>
+              </motion.div>
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Enhanced Personalized Recommendation */}
+      {enhancedRecommendation && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+        >
+          <Card className={`bg-gradient-to-r ${enhancedRecommendation.color} shadow-lg border-2 mood-card`}>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-2 mb-4">
+                <enhancedRecommendation.icon className="h-6 w-6 text-green-600" />
+                <span className="font-bold text-green-800 text-lg">Personalized Recommendation</span>
+                <Badge variant={enhancedRecommendation.urgency === 'high' ? 'destructive' : enhancedRecommendation.urgency === 'medium' ? 'default' : 'secondary'} className="ml-auto">
+                  {enhancedRecommendation.urgency} priority
+                </Badge>
+              </div>
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg p-4 border">
+                  <h4 className="font-bold text-gray-900 text-lg mb-2 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-yellow-500" />
+                    {enhancedRecommendation.title}
+                  </h4>
+                  <p className="text-gray-700 leading-relaxed mb-3">{enhancedRecommendation.description}</p>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Badge variant="outline">{enhancedRecommendation.type}</Badge>
+                    <span className="text-xs">•</span>
+                    <span>Recommended for stress level {latestAiAnalysis.stressLevel}</span>
+                  </div>
+                </div>
+                {enhancedRecommendation.content_url && (
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Button
+                      variant="default"
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold shadow-lg"
+                      onClick={() => {
+                        if (enhancedRecommendation.content_url?.startsWith('http')) {
+                          window.open(enhancedRecommendation.content_url, '_blank');
+                        } else {
+                          window.location.href = enhancedRecommendation.content_url!;
+                        }
+                      }}
+                    >
+                      <enhancedRecommendation.icon className="h-5 w-5 mr-2" />
+                      Start Recommended Activity
+                      <Zap className="h-4 w-4 ml-2" />
+                    </Button>
+                  </motion.div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
     </div>
   );

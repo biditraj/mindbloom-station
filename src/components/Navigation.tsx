@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { Heart, Brain, MessageCircle, BarChart3, LogOut, User } from 'lucide-react';
+import { Heart, Brain, MessageCircle, BarChart3, LogOut, User, History, TrendingUp } from 'lucide-react';
 
 interface NavigationProps {
   currentView: string;
@@ -14,6 +14,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
 
   const menuItems = [
     { id: 'mood', label: 'Mood Check-in', icon: Heart, description: 'Track your daily mood' },
+    { id: 'history', label: 'History', icon: History, description: 'View your mood history' },
+    { id: 'statistics', label: 'Statistics', icon: TrendingUp, description: 'Your mood statistics' },
     { id: 'insights', label: 'Insights', icon: Brain, description: 'AI-powered recommendations' },
     { id: 'chat', label: 'Peer Support', icon: MessageCircle, description: 'Anonymous chat' },
     ...(student?.role === 'admin' ? [

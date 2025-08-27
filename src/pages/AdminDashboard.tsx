@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import Layout from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -201,10 +202,10 @@ const AdminDashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <Layout>
+        <div className="p-6 h-full flex items-center justify-center">
           <motion.div 
-            className="flex items-center justify-center h-64"
+            className="flex items-center justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -225,18 +226,19 @@ const AdminDashboard: React.FC = () => {
             </div>
           </motion.div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <motion.div 
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className="max-w-7xl mx-auto space-y-6">
+    <Layout>
+      <motion.div 
+        className="p-6 bg-white/80 backdrop-blur-sm overflow-auto h-full"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Enhanced Header */}
         <motion.div 
           className="flex justify-between items-start"
@@ -739,6 +741,7 @@ const AdminDashboard: React.FC = () => {
         </motion.div>
       </div>
     </motion.div>
+    </Layout>
   );
 };
 
