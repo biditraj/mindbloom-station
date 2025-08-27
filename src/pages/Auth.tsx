@@ -18,9 +18,25 @@ const Auth = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    console.log('🚀 Auth form submitted with:', { anonymousId, isAdmin });
+    
+    // Validate input
     if (!anonymousId.trim()) {
+      console.warn('⚠️ Empty anonymous ID provided');
       toast({
         title: "Please enter an anonymous ID",
+        description: "You need an ID to access the platform",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (anonymousId.trim().length < 3) {
+      console.warn('⚠️ Anonymous ID too short:', anonymousId.trim().length);
+      toast({
+        title: "ID too short",
+        description: "Anonymous ID must be at least 3 characters long",
         variant: "destructive"
       });
       return;
@@ -28,21 +44,31 @@ const Auth = () => {
 
     try {
       setLoading(true);
+      console.log('🚀 Starting authentication process...');
+      
       await login(anonymousId.trim(), isAdmin);
+      
+      console.log('✅ Authentication successful!');
       toast({
         title: "Welcome to MindBloom Station",
         description: "You're now connected anonymously"
       });
       navigate('/');
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Authentication failed:', error);
+      
+      // Show specific error message from the authentication system
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      console.log('💬 Showing error to user:', errorMessage);
       toast({
         title: "Login failed",
-        description: "Please try again with a different ID",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setLoading(false);
+      console.log('🔚 Authentication process completed');
     }
   };
 
@@ -127,6 +153,9 @@ const Auth = () => {
 
         <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>Your privacy is protected. All data is anonymized.</p>
+          <p className="mt-2 text-xs">
+            Having trouble? Check the browser console (F12) for detailed logs.
+          </p>
         </div>
       </div>
     </div>
