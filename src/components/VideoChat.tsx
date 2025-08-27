@@ -8,6 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVideoChat } from '@/hooks/useVideoChat';
+import DatabaseDiagnostic from './DatabaseDiagnostic';
+import VideoChatDebugger from './VideoChatDebugger';
+import VideoChatManualTest from './VideoChatManualTest';
+import RLSTroubleshooter from './RLSTroubleshooter';
 import { 
   Video, 
   VideoOff, 
@@ -77,8 +81,53 @@ const VideoChat: React.FC = () => {
     );
   }
 
+  // Check if user is in local/offline mode (temporary student ID)
+  const isLocalMode = student.id.startsWith('temp_');
+  
+  if (isLocalMode) {
+    return (
+      <Card className="mood-card">
+        <CardContent className="text-center py-8">
+          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
+          <h3 className="font-medium mb-2">Video Chat Unavailable</h3>
+          <p className="text-muted-foreground text-sm mb-4">
+            Video chat requires a database connection. You're currently in offline mode.
+          </p>
+          <div className="space-y-2 text-xs text-muted-foreground">
+            <p>To use video chat:</p>
+            <p>1. Check your internet connection</p>
+            <p>2. Log out and log back in</p>
+            <p>3. Try refreshing the page</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Page
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[600px]">
+    <div className="space-y-6">
+      {/* Database Diagnostic */}
+      <DatabaseDiagnostic />
+      
+      {/* RLS Troubleshooter */}
+      <RLSTroubleshooter />
+      
+      {/* Advanced Video Chat Debugger */}
+      <VideoChatDebugger />
+      
+      {/* Manual Test Component */}
+      <VideoChatManualTest />
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[600px]">
       {/* Video Chat Area */}
       <Card className="mood-card lg:col-span-2 flex flex-col">
         <CardHeader className="pb-3">
@@ -391,6 +440,7 @@ const VideoChat: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+    </div>
     </div>
   );
 };

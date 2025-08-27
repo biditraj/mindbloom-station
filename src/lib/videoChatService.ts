@@ -34,19 +34,110 @@ export interface SignalingMessage {
 
 export class VideoChatService {
   /**
-   * Add user to matchmaking queue - FALLBACK VERSION
+   * Set the anonymous_id for RLS policies
+   */
+  private static async setAnonymousIdForRLS(studentId: string): Promise<void> {
+    try {
+      console.log('🛡️ RLS SETUP: Starting setAnonymousIdForRLS for studentId:', studentId);
+      
+      // Skip RLS setup for temporary students
+      if (studentId.startsWith('temp_')) {
+        console.warn('⚠️ RLS SETUP: Skipping RLS setup for temporary student');
+        return;
+      }
+      
+      console.log('🛡️ RLS SETUP: Fetching student data for anonymous_id...');
+      // First, get the anonymous_id for this student
+      const { data: student, error } = await supabase
+        .from('students')
+        .select('anonymous_id')
+        .eq('id', studentId)
+        .single();
+
+      console.log('🛡️ RLS SETUP: Student query result:', { student, error });
+
+      if (error || !student) {
+        console.warn('⚠️ RLS SETUP: Could not fetch anonymous_id for RLS:', error);
+        console.warn('⚠️ RLS SETUP: Student data:', student);
+        console.warn('⚠️ RLS SETUP: Error details:', {
+          code: error?.code,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint
+        });
+        throw new Error('Database access denied. Please check your connection.');
+      }
+
+      console.log('🛡️ RLS SETUP: Setting RLS config with anonymous_id:', student.anonymous_id);
+      // Set the anonymous_id for RLS policies
+      await (supabase as any).rpc('set_config', {
+        setting_name: 'app.anonymous_id',
+        setting_value: student.anonymous_id
+      });
+      
+      console.log('✅ RLS SETUP: Set anonymous_id for RLS:', student.anonymous_id);
+    } catch (error: any) {
+      console.error('⚠️ RLS SETUP: RLS setup failed:', error);
+      console.error('⚠️ RLS SETUP: Error name:', error.name);
+      console.error('⚠️ RLS SETUP: Error message:', error.message);
+      console.error('⚠️ RLS SETUP: Error code:', error.code);
+      console.error('⚠️ RLS SETUP: Error stack:', error.stack);
+      throw new Error('Database access denied. Please check your connection.');
+    }
+  }
+
+  /**
+   * Add user to matchmaking queue - ENHANCED VERSION WITH MATCHING
    */
   static async joinQueue(studentId: string): Promise<QueueEntry | null> {
     try {
-      // First, remove any existing queue entries for this user
-      await this.leaveQueue(studentId);
-
-      // For now, simulate queue entry since tables might not exist
-      console.log('Adding user to queue:', studentId);
+      console.log('🚀 VideoChatService.joinQueue called with studentId:', studentId);
       
-      // Try to create queue entry if table exists, otherwise continue
+      // Validate student ID
+      if (!studentId || studentId.trim().length === 0) {
+        throw new Error('User authentication required. Please log in.');
+      }
+      
+      // Check if this is a temporary student ID (from local-only mode)
+      if (studentId.startsWith('temp_')) {
+        console.warn('⚠️ Temporary student ID detected. Video chat requires a real database connection.');
+        console.warn('⚠️ Student ID:', studentId);
+        console.warn('⚠️ This usually happens when:');
+        console.warn('   1. Database connection failed during login');
+        console.warn('   2. RLS policies are blocking user access');
+        console.warn('   3. User is in offline/local mode');
+        throw new Error('Video chat is not available in offline mode. Please check your internet connection and try logging in again.');
+      }
+      
+      console.log('🚀 Starting queue join process...');
+      console.log('📊 Environment check:', {
+        studentId,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
+        hasAnonKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Set up RLS policies before database operations
+      console.log('🛡️ Setting up RLS policies...');
+      await VideoChatService.setAnonymousIdForRLS(studentId);
+      
+      // First, remove any existing queue entries for this user
+      console.log('🧹 Cleaning up existing queue entries...');
+      await this.leaveQueue(studentId);
+      console.log('✅ Cleanup completed');
+
+      console.log('🎯 Adding user to queue:', studentId);
+      
+      // Try to create queue entry
       try {
-        const { data, error } = await supabase
+        console.log('📊 Attempting to insert into matchmaking_queue table...');
+        console.log('📊 Insert payload:', {
+          student_id: studentId,
+          is_active: true,
+          preferences: {}
+        });
+        
+        const { data: queueEntry, error } = await supabase
           .from('matchmaking_queue')
           .insert({
             student_id: studentId,
@@ -56,42 +147,194 @@ export class VideoChatService {
           .select()
           .single();
 
+        console.log('📊 Supabase response:', { data: queueEntry, error });
+        console.log('📊 Response type:', typeof queueEntry);
+        console.log('📊 Error type:', typeof error);
+
         if (error) {
-          console.warn('Queue table not available, using fallback:', error.message);
-          // Return simulated queue entry
-          return {
-            id: 'fallback-' + Date.now(),
-            student_id: studentId,
-            is_active: true,
-            preferences: {},
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
+          console.error('❌ Queue table error:', error);
+          console.error('❌ Error code:', error.code);
+          console.error('❌ Error message:', error.message);
+          console.error('❌ Error details:', error.details);
+          console.error('❌ Error hint:', error.hint);
+          
+          // Check for specific error types
+          if (error.code === '42P01') {
+            throw new Error('Video chat system not initialized. Please contact support.');
+          } else if (error.code === '23505') {
+            throw new Error('You are already in the queue. Please wait for a match.');
+          } else if (error.code === '42501') {
+            throw new Error('Database access denied. Please check your connection.');
+          } else if (error.code === '23503') {
+            throw new Error('User authentication required. Please log in again.');
+          } else if (error.code === 'PGRST116') {
+            throw new Error('Video chat tables not found. The feature may not be set up yet.');
+          } else {
+            throw new Error(`Database error (${error.code}): ${error.message}`);
+          }
         }
-        return data;
-      } catch (tableError) {
-        console.warn('Matchmaking queue table not found, using fallback mode');
-        return {
-          id: 'fallback-' + Date.now(),
-          student_id: studentId,
-          is_active: true,
-          preferences: {},
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+
+        console.log('✅ Successfully added to queue:', queueEntry);
+
+        // After joining queue, immediately try to find a match
+        setTimeout(async () => {
+          try {
+            console.log('🔍 Attempting initial match search...');
+            await this.tryCreateMatch(studentId);
+          } catch (matchError) {
+            console.warn('⚠️ Initial match attempt failed:', matchError);
+          }
+        }, 1000); // Small delay to ensure queue entry is processed
+
+        return queueEntry;
+      } catch (tableError: any) {
+        console.error('❌ Matchmaking queue error:', tableError);
+        console.error('❌ TableError name:', tableError.name);
+        console.error('❌ TableError message:', tableError.message);
+        console.error('❌ TableError stack:', tableError.stack);
+        
+        // Provide specific error messages based on error type
+        if (tableError.message?.includes('relation "public.matchmaking_queue" does not exist')) {
+          throw new Error('Video chat system not set up. Please contact support to enable this feature.');
+        } else if (tableError.message?.includes('permission denied')) {
+          throw new Error('Database permissions error. Please try logging out and back in.');
+        } else if (tableError.message?.includes('network')) {
+          throw new Error('Network connection error. Please check your internet connection.');
+        } else if (tableError.code === 'PGRST116') {
+          throw new Error('Database table not found. The video chat feature may not be enabled.');
+        } else {
+          throw new Error(`Failed to join queue: ${tableError.message || 'Unknown database error'}`);
+        }
       }
-    } catch (error) {
-      console.error('Error joining queue:', error);
+    } catch (error: any) {
+      console.error('❌ GENERIC CATCH: Error joining queue:', error);
+      console.error('❌ GENERIC CATCH: Error name:', error.name);
+      console.error('❌ GENERIC CATCH: Error message:', error.message);
+      console.error('❌ GENERIC CATCH: Error code:', error.code);
+      console.error('❌ GENERIC CATCH: Error details:', error.details);
+      console.error('❌ GENERIC CATCH: Error stack:', error.stack);
+      console.error('❌ GENERIC CATCH: Error constructor:', error.constructor.name);
+      console.error('❌ GENERIC CATCH: Full error object:', JSON.stringify(error, null, 2));
+      
+      // If it's already a formatted error, re-throw it
+      if (error.message && (error.message.includes('Video chat system') || error.message.includes('Database') || error.message.includes('authentication') || error.message.includes('offline mode'))) {
+        console.log('🔄 GENERIC CATCH: Re-throwing formatted error:', error.message);
+        throw error;
+      }
+      
+      // Log why we're falling back to generic error
+      console.error('❌ GENERIC CATCH: No specific error pattern matched, using generic error');
+      console.error('❌ GENERIC CATCH: Available error message for pattern matching:', error.message);
+      
+      // Otherwise, provide a generic error but include the original error details for debugging
+      throw new Error(`Failed to join matchmaking queue. Please check your connection and try again. (Debug: ${error.message || error.name || 'Unknown error'})`);
+    }
+  }
+
+  /**
+   * Handle fallback queue when database is not available
+   */
+  private static handleFallbackQueue(studentId: string): QueueEntry {
+    return {
+      id: 'fallback-' + Date.now(),
+      student_id: studentId,
+      is_active: true,
+      preferences: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Try to create a match for the given user
+   */
+  static async tryCreateMatch(studentId: string): Promise<VideoSession | null> {
+    try {
+      console.log('🔍 Trying to create match for user:', studentId);
+
+      // Skip matching for temporary students
+      if (studentId.startsWith('temp_')) {
+        console.log('Skipping match creation for temporary student');
+        return null;
+      }
+      
+      // Set up RLS policies before database operations
+      await VideoChatService.setAnonymousIdForRLS(studentId);
+
+      // Check if tables exist before querying
+      try {
+        // Find the oldest waiting user that's not the current user
+        const { data: waitingUsers, error: queueError } = await supabase
+          .from('matchmaking_queue')
+          .select('student_id, created_at')
+          .eq('is_active', true)
+          .neq('student_id', studentId)
+          .order('created_at', { ascending: true })
+          .limit(1);
+
+        if (queueError) {
+          console.error('❌ Error querying queue:', queueError);
+          
+          if (queueError.code === '42P01') {
+            console.warn('⚠️ Matchmaking queue table does not exist');
+            return null;
+          }
+          
+          throw queueError;
+        }
+
+        if (!waitingUsers || waitingUsers.length === 0) {
+          console.log('🔍 No waiting users found for matching');
+          return null;
+        }
+
+        const matchedUserId = waitingUsers[0].student_id;
+        console.log('✨ Found match:', studentId, 'with', matchedUserId);
+
+        // Create a session for the matched users
+        const session = await this.createSession(studentId, matchedUserId);
+        
+        if (session) {
+          console.log('✅ Match created successfully:', session.session_id);
+          
+          // Notify both users about the match by updating the session
+          await this.updateSessionStatus(session.session_id, 'matched');
+          
+          return session;
+        }
+
+        return null;
+      } catch (tableError: any) {
+        console.warn('⚠️ Table access error in tryCreateMatch:', tableError.message);
+        
+        if (tableError.message?.includes('relation') && tableError.message?.includes('does not exist')) {
+          console.log('📄 Video chat tables not set up yet');
+          return null;
+        }
+        
+        throw tableError;
+      }
+    } catch (error: any) {
+      console.error('❌ Error creating match:', error);
       return null;
     }
   }
 
   /**
-   * Remove user from matchmaking queue - FALLBACK VERSION
+   * Remove user from matchmaking queue - ENHANCED VERSION
    */
   static async leaveQueue(studentId: string): Promise<boolean> {
     try {
       console.log('Removing user from queue:', studentId);
+      
+      // Skip database operations for temporary students
+      if (studentId.startsWith('temp_')) {
+        console.log('Skipping queue leave for temporary student');
+        return true;
+      }
+      
+      // Set up RLS policies before database operations
+      await VideoChatService.setAnonymousIdForRLS(studentId);
       
       try {
         const { error } = await supabase
@@ -109,7 +352,7 @@ export class VideoChatService {
       }
     } catch (error) {
       console.error('Error leaving queue:', error);
-      return false;
+      throw new Error('Failed to leave matchmaking queue. Please try again.');
     }
   }
 
@@ -131,7 +374,7 @@ export class VideoChatService {
   }
 
   /**
-   * Create a new video chat session - FALLBACK VERSION
+   * Create a new video chat session - ENHANCED VERSION WITH ERROR HANDLING
    */
   static async createSession(participant1Id: string, participant2Id: string): Promise<VideoSession | null> {
     try {
@@ -157,44 +400,23 @@ export class VideoChatService {
 
         if (error) {
           console.warn('Video chat sessions table not available, using fallback:', error.message);
-          // Return simulated session
-          return {
-            id: 'fallback-' + Date.now(),
-            session_id: sessionId,
-            participant_1_id: participant1Id,
-            participant_2_id: participant2Id,
-            status: 'matched',
-            started_at: null,
-            ended_at: null,
-            duration_seconds: 0,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
+          throw new Error('Failed to create video session in database');
         }
+        
+        console.log('Session created in database:', data);
         return data;
       } catch (tableError) {
-        console.warn('Video chat sessions table not found, using fallback mode');
-        return {
-          id: 'fallback-' + Date.now(),
-          session_id: sessionId,
-          participant_1_id: participant1Id,
-          participant_2_id: participant2Id,
-          status: 'matched',
-          started_at: null,
-          ended_at: null,
-          duration_seconds: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+        console.error('Video chat sessions table error:', tableError);
+        throw new Error('Database connection failed. Please check your internet connection and try again.');
       }
     } catch (error) {
       console.error('Error creating session:', error);
-      return null;
+      throw error;
     }
   }
 
   /**
-   * Update session status
+   * Update session status - ENHANCED WITH ERROR HANDLING
    */
   static async updateSessionStatus(
     sessionId: string, 
@@ -220,11 +442,16 @@ export class VideoChatService {
         .update(updateData)
         .eq('session_id', sessionId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating session status:', error);
+        throw new Error(`Failed to update session status: ${error.message}`);
+      }
+      
+      console.log(`Session ${sessionId} status updated to:`, status);
       return true;
     } catch (error) {
       console.error('Error updating session status:', error);
-      return false;
+      throw error;
     }
   }
 
@@ -506,6 +733,7 @@ export const videoChatService = {
   joinQueue: VideoChatService.joinQueue,
   leaveQueue: VideoChatService.leaveQueue,
   findMatch: VideoChatService.findMatch,
+  tryCreateMatch: VideoChatService.tryCreateMatch,
   createSession: VideoChatService.createSession,
   updateSessionStatus: VideoChatService.updateSessionStatus,
   getCurrentSession: VideoChatService.getCurrentSession,
