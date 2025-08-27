@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, MessageSquare, Brain, Calendar, AlertTriangle } from 'lucide-react';
 
@@ -21,6 +22,7 @@ const AdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const { student } = useAuth();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (student?.role === 'admin') {
@@ -88,8 +90,8 @@ const AdminDashboard: React.FC = () => {
 
     Object.entries(dayGroups).forEach(([day, moods]) => {
       const dayIndex = days.indexOf(day);
-      if (dayIndex !== -1) {
-        const average = moods.reduce((sum, mood) => sum + mood, 0) / moods.length;
+      if (dayIndex !== -1 && Array.isArray(moods)) {
+        const average = moods.reduce((sum: number, mood: number) => sum + mood, 0) / moods.length;
         weekData[dayIndex] = {
           day,
           averageMood: Math.round(average * 100) / 100,
@@ -155,7 +157,7 @@ const AdminDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-3'}`}>
           {[1, 2, 3].map((i) => (
             <div key={i} className="mood-card animate-pulse">
               <div className="h-24 bg-muted rounded"></div>
@@ -169,54 +171,54 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="space-y-6 fade-in-up">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold mb-2">Institutional Dashboard</h1>
-        <p className="text-muted-foreground">
+      <div className={`text-center mb-8 ${isMobile ? 'px-4' : ''}`}>
+        <h1 className={`font-bold mb-2 ${isMobile ? 'text-2xl' : 'text-3xl'}`}>Institutional Dashboard</h1>
+        <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
           Anonymized mental health insights for student wellness
         </p>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1 px-4' : 'grid-cols-1 md:grid-cols-3'}`}>
         <Card className="mood-card">
-          <CardContent className="p-6">
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Students</p>
-                <p className="text-2xl font-bold">{data?.totalStudents || 0}</p>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Active Students</p>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>{data?.totalStudents || 0}</p>
               </div>
-              <Users className="h-8 w-8 text-primary" />
+              <Users className={`text-primary ${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
             </div>
           </CardContent>
         </Card>
 
         <Card className="mood-card">
-          <CardContent className="p-6">
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Mood Check-ins</p>
-                <p className="text-2xl font-bold">{data?.totalMoodLogs || 0}</p>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Mood Check-ins</p>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>{data?.totalMoodLogs || 0}</p>
               </div>
-              <Brain className="h-8 w-8 text-primary" />
+              <Brain className={`text-primary ${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
             </div>
           </CardContent>
         </Card>
 
         <Card className="mood-card">
-          <CardContent className="p-6">
+          <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Peer Messages</p>
-                <p className="text-2xl font-bold">{data?.totalMessages || 0}</p>
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Peer Messages</p>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>{data?.totalMessages || 0}</p>
               </div>
-              <MessageSquare className="h-8 w-8 text-primary" />
+              <MessageSquare className={`text-primary ${isMobile ? 'h-6 w-6' : 'h-8 w-8'}`} />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid gap-6 ${isMobile ? 'grid-cols-1 px-4' : 'grid-cols-1 lg:grid-cols-2'}`}>
         {/* Weekly Mood Trends */}
         <Card className="mood-card">
           <CardHeader>
@@ -232,8 +234,8 @@ const AdminDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={data?.weeklyMoodTrends || []}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis domain={[1, 5]} />
+                <XAxis dataKey="day" fontSize={isMobile ? 10 : 12} />
+                <YAxis domain={[1, 5]} fontSize={isMobile ? 10 : 12} />
                 <Tooltip 
                   formatter={(value, name) => [
                     `${value}`, 
@@ -264,15 +266,15 @@ const AdminDashboard: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={isMobile ? 200 : 300}>
               <PieChart>
                 <Pie
                   data={data?.moodDistribution || []}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ mood, percentage }) => `${mood} (${percentage}%)`}
-                  outerRadius={80}
+                  label={isMobile ? false : ({ mood, percentage }) => `${mood} (${percentage}%)`}
+                  outerRadius={isMobile ? 60 : 80}
                   fill="#8884d8"
                   dataKey="count"
                 >
@@ -288,60 +290,64 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Stress Levels */}
-      <Card className="mood-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            AI-Detected Stress Levels
-          </CardTitle>
-          <CardDescription>
-            Distribution of stress levels identified by AI analysis
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={data?.stressLevels || []}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="level" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="count" fill="hsl(var(--primary))" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className={isMobile ? 'px-4' : ''}>
+        <Card className="mood-card">
+          <CardHeader>
+            <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : ''}`}>
+              <Brain className="h-5 w-5" />
+              AI-Detected Stress Levels
+            </CardTitle>
+            <CardDescription className={isMobile ? 'text-sm' : ''}>
+              Distribution of stress levels identified by AI analysis
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
+              <BarChart data={data?.stressLevels || []}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="level" fontSize={isMobile ? 10 : 12} />
+                <YAxis fontSize={isMobile ? 10 : 12} />
+                <Tooltip />
+                <Bar dataKey="count" fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Summary Insights */}
-      <Card className="mood-card">
-        <CardHeader>
-          <CardTitle>Weekly Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">This Week's Observations</h4>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>• {data?.totalMoodLogs || 0} mood check-ins completed</p>
-                <p>• {data?.totalMessages || 0} peer support messages exchanged</p>
-                <p>• Most active day: {
-                  data?.weeklyMoodTrends.reduce((max, day) => 
-                    day.count > max.count ? day : max, 
-                    { day: 'None', count: 0 }
-                  ).day || 'None'
-                }</p>
+      <div className={isMobile ? 'px-4' : ''}>
+        <Card className="mood-card">
+          <CardHeader>
+            <CardTitle className={isMobile ? 'text-base' : ''}>Weekly Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+              <div className="space-y-2">
+                <h4 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>This Week's Observations</h4>
+                <div className={`space-y-1 text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <p>• {data?.totalMoodLogs || 0} mood check-ins completed</p>
+                  <p>• {data?.totalMessages || 0} peer support messages exchanged</p>
+                  <p>• Most active day: {
+                    data?.weeklyMoodTrends.reduce((max, day) => 
+                      day.count > max.count ? day : max, 
+                      { day: 'None', count: 0 }
+                    ).day || 'None'
+                  }</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <h4 className={`font-medium ${isMobile ? 'text-sm' : ''}`}>Recommendations</h4>
+                <div className={`space-y-1 text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  <p>• Continue promoting daily check-ins</p>
+                  <p>• Consider stress management workshops</p>
+                  <p>• Increase peer support program visibility</p>
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">Recommendations</h4>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>• Continue promoting daily check-ins</p>
-                <p>• Consider stress management workshops</p>
-                <p>• Increase peer support program visibility</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

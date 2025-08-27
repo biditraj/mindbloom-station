@@ -3,10 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
-import { MessageCircle, Send, Users, Heart, Shield } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MessageCircle, Send, Users, Heart, Shield, Info } from 'lucide-react';
 
 interface Message {
   id: string;
@@ -26,6 +28,7 @@ const PeerSupportChat: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { student } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (student) {
@@ -166,137 +169,197 @@ const PeerSupportChat: React.FC = () => {
     );
   }
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[600px]">
-      {/* Chat Area */}
-      <Card className="mood-card lg:col-span-2 flex flex-col">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
-                Peer Support Chat
-              </CardTitle>
-              <CardDescription>
-                Anonymous support from fellow students
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={connected ? "default" : "secondary"}>
-                {connected ? "Connected" : "Connecting..."}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="flex-1 flex flex-col">
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
-            {messages.length === 0 ? (
-              <div className="text-center text-muted-foreground py-8">
-                <Users className="h-8 w-8 mx-auto mb-2" />
-                <p className="text-sm">No messages yet. Start a conversation!</p>
-              </div>
-            ) : (
-              messages.map((message, index) => (
-                <div
-                  key={message.id}
-                  className={`flex ${
-                    message.sender_id === student.id ? 'justify-end' : 'justify-start'
-                  } fade-in-up`}
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                      message.sender_id === student.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary'
-                    }`}
-                  >
-                    <div className="text-xs opacity-70 mb-1">
-                      {message.sender_id === student.id 
-                        ? 'You' 
-                        : getAnonymousName(message.sender_id, index)
-                      }
-                    </div>
-                    <div className="text-sm">{message.content}</div>
-                    <div className="text-xs opacity-50 mt-1">
-                      {formatTime(message.created_at)}
-                    </div>
+    return (
+      <div className="flex flex-col h-full">
+        {!isMobile ? (
+          // Desktop Layout
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[600px]">
+            {/* Chat Area */}
+            <Card className="mood-card lg:col-span-2 flex flex-col">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <MessageCircle className="h-5 w-5 text-primary" />
+                      Peer Support Chat
+                    </CardTitle>
+                    <CardDescription>
+                      Anonymous support from fellow students
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={connected ? "default" : "secondary"}>
+                      {connected ? "Connected" : "Connecting..."}
+                    </Badge>
                   </div>
                 </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+              </CardHeader>
+              
+              <CardContent className="flex-1 flex flex-col">
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
+                  {messages.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-8">
+                      <Users className="h-8 w-8 mx-auto mb-2" />
+                      <p className="text-sm">No messages yet. Start a conversation!</p>
+                    </div>
+                  ) : (
+                    messages.map((message, index) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${
+                          message.sender_id === student.id ? 'justify-end' : 'justify-start'
+                        } fade-in-up`}
+                        style={{ animationDelay: `${index * 0.05}s` }}
+                      >
+                        <div
+                          className={`max-w-[70%] rounded-lg px-3 py-2 ${
+                            message.sender_id === student.id
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-secondary'
+                          }`}
+                        >
+                          <div className="text-xs opacity-70 mb-1">
+                            {message.sender_id === student.id 
+                              ? 'You' 
+                              : getAnonymousName(message.sender_id, index)
+                            }
+                          </div>
+                          <div className="text-sm">{message.content}</div>
+                          <div className="text-xs opacity-50 mt-1">
+                            {formatTime(message.created_at)}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
 
-          {/* Message Input */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Type your message... (Stay supportive and kind)"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-              disabled={!connected}
-            />
-            <Button
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || !connected}
-              size="sm"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                {/* Message Input */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Type your message... (Stay supportive and kind)"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="flex-1"
+                    disabled={!connected}
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim() || !connected}
+                    size="sm"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Guidelines & Support */}
-      <Card className="mood-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Shield className="h-5 w-5 text-primary" />
-            Chat Guidelines
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3 text-sm">
-            <div className="flex items-start gap-2">
-              <Heart className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <p>Be kind and supportive to fellow students</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <p>Your identity remains anonymous for privacy</p>
-            </div>
-            <div className="flex items-start gap-2">
-              <MessageCircle className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <p>Share experiences and coping strategies</p>
-            </div>
+            {/* Guidelines & Support */}
+            <GuidelinesPanel />
           </div>
+        ) : (
+          // Mobile Layout
+          <div className="flex flex-col h-screen">
+            {/* Mobile Header with Guidelines Sheet */}
+            <div className="flex-shrink-0 p-4 border-b border-border bg-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold text-lg flex items-center gap-2">
+                    <MessageCircle className="h-5 w-5 text-primary" />
+                    Peer Support
+                  </h2>
+                  <p className="text-xs text-muted-foreground">Anonymous student chat</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={connected ? "default" : "secondary"} className="text-xs">
+                    {connected ? "Connected" : "Connecting..."}
+                  </Badge>
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Info className="h-4 w-4" />
+                      </Button>
+                    </SheetTrigger>
+                    <SheetContent side="right" className="w-80">
+                      <SheetHeader>
+                        <SheetTitle>Chat Guidelines</SheetTitle>
+                      </SheetHeader>
+                      <div className="mt-4">
+                        <GuidelinesPanel />
+                      </div>
+                    </SheetContent>
+                  </Sheet>
+                </div>
+              </div>
+            </div>
 
-          <div className="pt-4 border-t border-border">
-            <h4 className="font-medium text-sm mb-2">Crisis Resources</h4>
-            <div className="space-y-2 text-xs text-muted-foreground">
-              <p>Crisis Text Line: Text HOME to 741741</p>
-              <p>National Suicide Prevention Lifeline: 988</p>
-              <p>Campus Counseling Services: Available 24/7</p>
+            {/* Mobile Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  <Users className="h-8 w-8 mx-auto mb-2" />
+                  <p className="text-sm">No messages yet. Start a conversation!</p>
+                </div>
+              ) : (
+                messages.map((message, index) => (
+                  <div
+                    key={message.id}
+                    className={`flex ${
+                      message.sender_id === student.id ? 'justify-end' : 'justify-start'
+                    } fade-in-up`}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                  >
+                    <div
+                      className={`max-w-[85%] rounded-lg px-3 py-2 ${
+                        message.sender_id === student.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-secondary'
+                      }`}
+                    >
+                      <div className="text-xs opacity-70 mb-1">
+                        {message.sender_id === student.id 
+                          ? 'You' 
+                          : getAnonymousName(message.sender_id, index)
+                        }
+                      </div>
+                      <div className="text-sm">{message.content}</div>
+                      <div className="text-xs opacity-50 mt-1">
+                        {formatTime(message.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={messagesEndRef} />
             </div>
-          </div>
 
-          <div className="pt-4 border-t border-border">
-            <h4 className="font-medium text-sm mb-2">Quick Tips</h4>
-            <div className="space-y-1 text-xs text-muted-foreground">
-              <p>• Take deep breaths when stressed</p>
-              <p>• Break tasks into smaller steps</p>
-              <p>• Practice self-compassion</p>
-              <p>• Reach out when you need support</p>
+            {/* Mobile Message Input */}
+            <div className="flex-shrink-0 p-4 border-t border-border bg-card">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Type message..."
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="flex-1 text-base"
+                  disabled={!connected}
+                />
+                <Button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim() || !connected}
+                  size="sm"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        )}
+      </div>
+    );
 };
 
 export default PeerSupportChat;

@@ -3,11 +3,13 @@ import Layout from '@/components/Layout';
 import InsightsPanel from '@/components/InsightsPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { type PredictionResult } from '@/lib/moodModel';
 import { Loader2 } from 'lucide-react';
 
 const InsightsPage = () => {
   const { student } = useAuth();
+  const isMobile = useIsMobile();
   const [latestAiAnalysis, setLatestAiAnalysis] = useState<PredictionResult | null>(null);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,12 +105,12 @@ const InsightsPage = () => {
     console.log('Insights page is in loading state');
     return (
       <Layout>
-        <div className="p-4 bg-white/80 backdrop-blur-sm min-h-full flex items-center justify-center">
+        <div className={`bg-white/80 backdrop-blur-sm min-h-full flex items-center justify-center ${isMobile ? 'p-3' : 'p-4'}`}>
           <div className="flex items-center space-x-4">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             <div>
-              <div className="text-xl font-semibold text-gray-700">Loading Insights...</div>
-              <div className="text-sm text-gray-500">Analyzing your mood patterns</div>
+              <div className={`font-semibold text-gray-700 ${isMobile ? 'text-lg' : 'text-xl'}`}>Loading Insights...</div>
+              <div className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>Analyzing your mood patterns</div>
             </div>
           </div>
         </div>
@@ -120,10 +122,10 @@ const InsightsPage = () => {
 
   return (
     <Layout>
-      <div className="p-4 bg-white/80 backdrop-blur-sm min-h-full">
-        <div className="mb-6 pb-4 border-b border-gray-200/60">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">AI Insights</h1>
-          <p className="text-slate-600 text-sm">
+      <div className={`bg-white/80 backdrop-blur-sm min-h-full ${isMobile ? 'p-3' : 'p-4'}`}>
+        <div className={`mb-6 pb-4 border-b border-gray-200/60 ${isMobile ? 'mb-4 pb-3' : ''}`}>
+          <h1 className={`font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent ${isMobile ? 'text-xl' : 'text-2xl'}`}>AI Insights</h1>
+          <p className={`text-slate-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             {latestAiAnalysis 
               ? 'Personalized recommendations based on your latest mood analysis' 
               : 'No mood data found yet. Log your first mood to get personalized insights and recommendations'
@@ -131,14 +133,14 @@ const InsightsPage = () => {
           </p>
           {/* Debug information in development */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+            <div className={`mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 ${isMobile ? 'text-xs' : 'text-xs'}`}>
               <strong>Debug:</strong> Student ID: {student?.id || 'Not found'}, 
               Has AI Analysis: {latestAiAnalysis ? 'Yes' : 'No'}, 
               Selected Mood: {selectedMood || 'None'}
             </div>
           )}
         </div>
-        <div className="pb-8">
+        <div className={isMobile ? 'pb-6' : 'pb-8'}>
           <InsightsPanel 
             latestAiAnalysis={latestAiAnalysis}
             selectedMood={selectedMood}

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   Smile, Meh, Frown, Heart, Sun, Brain, Sparkles, Video, Wind, MessageCircle, 
   Zap, Activity, BookOpen, TrendingUp 
@@ -166,6 +167,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
   const [hoveredMood, setHoveredMood] = useState<string | null>(null);
   const { student } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Load model status on component mount for development
   useEffect(() => {
@@ -382,28 +384,28 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       className="mb-8"
     >
       <Card className="mood-card shadow-lg border-2 border-blue-100">
-        <CardHeader className="text-center bg-gradient-to-r from-blue-50 to-purple-50">
-          <CardTitle className="flex items-center justify-center gap-2 text-xl">
+        <CardHeader className={`text-center bg-gradient-to-r from-blue-50 to-purple-50 ${isMobile ? 'pb-4' : ''}`}>
+          <CardTitle className={`flex items-center justify-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'}`}>
             <Heart className="h-7 w-7 text-red-500 animate-pulse" />
             How are you feeling today?
           </CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardDescription className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>
             Your daily check-in helps us understand your wellbeing with AI-powered insights
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 p-6">
+        <CardContent className={`space-y-6 ${isMobile ? 'p-4' : 'p-6'}`}>
           {/* Enhanced Mood Selection */}
           <div className="space-y-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
+              <h3 className={`font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
                 <Sparkles className="h-5 w-5 text-purple-600" />
                 How are you feeling?
               </h3>
-              <p className="text-sm text-gray-600">Choose the emoji that best represents your current mood</p>
+              <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>Choose the emoji that best represents your current mood</p>
             </div>
             
             {/* Mood Emoji Grid */}
-            <div className="grid grid-cols-3 gap-4 max-w-lg mx-auto">
+            <div className={`grid gap-3 mx-auto ${isMobile ? 'grid-cols-3 max-w-sm' : 'grid-cols-3 lg:grid-cols-3 max-w-lg'}`}>
               {moodEmojis.map((mood, index) => (
                 <motion.button
                   key={mood.name}
@@ -424,7 +426,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                   onHoverStart={() => setHoveredMood(mood.name)}
                   onHoverEnd={() => setHoveredMood(null)}
                   onClick={() => setSelectedMood(mood.name)}
-                  className={`relative p-4 rounded-2xl border-2 transition-all duration-300 group ${
+                  className={`relative rounded-2xl border-2 transition-all duration-300 group touch-manipulation ${isMobile ? 'p-3 active:scale-95' : 'p-4'} ${
                     selectedMood === mood.name
                       ? `${mood.bgColor} border-4 border-current shadow-xl ${mood.shadowColor} ring-4 ring-opacity-30 transform scale-105`
                       : `${mood.bgColor} border-gray-200 hover:border-current hover:shadow-lg`
@@ -433,7 +435,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                   <div className="text-center space-y-2">
                     {/* Animated Emoji */}
                     <motion.div 
-                      className="text-4xl select-none"
+                      className={`select-none ${isMobile ? 'text-3xl' : 'text-4xl'}`}
                       animate={{
                         scale: selectedMood === mood.name ? [1, 1.2, 1] : hoveredMood === mood.name ? 1.1 : 1,
                         rotate: hoveredMood === mood.name ? [0, -3, 3, 0] : 0
@@ -444,7 +446,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                     </motion.div>
                     
                     {/* Mood Label */}
-                    <div className={`text-sm font-semibold transition-colors duration-200 ${
+                    <div className={`font-semibold transition-colors duration-200 ${isMobile ? 'text-xs' : 'text-sm'} ${
                       selectedMood === mood.name ? mood.color : 'text-gray-600 group-hover:' + mood.color
                     }`}>
                       {mood.label}
@@ -545,8 +547,8 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
               placeholder="Describe what's on your mind today. Our enhanced AI will analyze your text for better insights..."
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="resize-none min-h-[100px] border-2 focus:border-primary/50 transition-colors"
-              rows={4}
+              className={`resize-none border-2 focus:border-primary/50 transition-colors ${isMobile ? 'min-h-[80px] text-base' : 'min-h-[100px]'}`}
+              rows={isMobile ? 3 : 4}
             />
             {note.length > 0 && (
               <div className="text-xs text-gray-500 flex justify-between">
@@ -599,7 +601,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
             <Button
               onClick={handleSubmit}
               disabled={loading || !selectedMood}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-4 text-lg shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${isMobile ? 'py-3 text-base' : 'py-4 text-lg'}`}
               size="lg"
             >
               {loading ? (

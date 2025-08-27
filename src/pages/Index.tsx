@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 import Layout from '@/components/Layout';
 import MoodTracker from '@/components/MoodTracker';
 import Auth from './Auth';
@@ -10,6 +11,7 @@ import { type PredictionResult } from '@/lib/moodModel';
 const Index = () => {
   const { student, loading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [refreshInsights, setRefreshInsights] = useState(0);
   const [latestAiAnalysis, setLatestAiAnalysis] = useState<PredictionResult | null>(null);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -43,12 +45,12 @@ const Index = () => {
 
   return (
     <Layout>
-      <div className="p-4 bg-white/80 backdrop-blur-sm min-h-full">
-        <div className="mb-6 pb-4 border-b border-gray-200/60">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Mood Check-in</h1>
-          <p className="text-slate-600 text-sm">How are you feeling today? Track your mood and get personalized insights.</p>
+      <div className={`bg-white/80 backdrop-blur-sm min-h-full ${isMobile ? 'p-3' : 'p-4'}`}>
+        <div className={`mb-6 pb-4 border-b border-gray-200/60 ${isMobile ? 'mb-4 pb-3' : ''}`}>
+          <h1 className={`font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent ${isMobile ? 'text-xl' : 'text-2xl'}`}>Mood Check-in</h1>
+          <p className={`text-slate-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>How are you feeling today? Track your mood and get personalized insights.</p>
         </div>
-        <div className="pb-8">
+        <div className={isMobile ? 'pb-6' : 'pb-8'}>
           <MoodTracker onMoodLogged={handleMoodLogged} />
         </div>
       </div>
