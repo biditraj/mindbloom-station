@@ -18,13 +18,20 @@ import {
   getDailyActivity,
   getStressLevelDistribution,
   getStudentOverview,
+  getModelPerformanceMetrics,
+  getModelConfidenceDistribution,
+  getFeatureImportance,
   type WeeklyStressTrend,
   type SentimentDistribution,
   type DailyActivity,
   type StressLevelDistribution,
-  type StudentOverview
+  type StudentOverview,
+  type ModelPerformanceMetrics,
+  type ModelConfidenceDistribution,
+  type FeatureImportance
 } from '@/lib/analyticsQueries';
 import { supabase } from '@/integrations/supabase/client';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 // Color schemes for charts
 const COLORS = {
@@ -51,6 +58,9 @@ const AdminDashboard: React.FC = () => {
   const [sentimentData, setSentimentData] = useState<SentimentDistribution[]>([]);
   const [dailyActivity, setDailyActivity] = useState<DailyActivity[]>([]);
   const [stressDistribution, setStressDistribution] = useState<StressLevelDistribution[]>([]);
+  const [modelMetrics, setModelMetrics] = useState<ModelPerformanceMetrics | null>(null);
+  const [confidenceDistribution, setConfidenceDistribution] = useState<ModelConfidenceDistribution[]>([]);
+  const [featureImportance, setFeatureImportance] = useState<FeatureImportance[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isRealTimeConnected, setIsRealTimeConnected] = useState(false);
@@ -58,7 +68,7 @@ const AdminDashboard: React.FC = () => {
   const [autoRefresh, setAutoRefresh] = useState(true);
   
   // Ref for cleanup
-  const subscriptionRef = useRef<any>(null);
+  const subscriptionRef = useRef<RealtimeChannel | null>(null);
 
   // Enhanced analytics loading with error handling
   const loadAnalytics = useCallback(async (showLoader = true) => {
@@ -67,12 +77,15 @@ const AdminDashboard: React.FC = () => {
       console.log('📊 Loading enhanced dashboard analytics...');
       
       const startTime = Date.now();
-      const [overviewData, weeklyData, sentiments, daily, stressLevels] = await Promise.all([
+      const [overviewData, weeklyData, sentiments, daily, stressLevels, modelPerf, confidence, features] = await Promise.all([
         getStudentOverview(),
         getWeeklyStressTrends(),
         getSentimentDistribution(),
         getDailyActivity(),
-        getStressLevelDistribution()
+        getStressLevelDistribution(),
+        getModelPerformanceMetrics(),
+        getModelConfidenceDistribution(),
+        getFeatureImportance()
       ]);
       
       const loadTime = Date.now() - startTime;
@@ -83,13 +96,19 @@ const AdminDashboard: React.FC = () => {
       setSentimentData(sentiments);
       setDailyActivity(daily);
       setStressDistribution(stressLevels);
+      setModelMetrics(modelPerf);
+      setConfidenceDistribution(confidence);
+      setFeatureImportance(features);
       setLastUpdated(new Date());
-      
-      console.log('📈 Analytics summary:', {
+
+      console.log('📊 Enhanced analytics summary:', {
         totalStudents: overviewData.total_students,
         totalLogs: overviewData.total_mood_logs,
-        avgStress: overviewData.avg_stress_level?.toFixed(1)
+        avgStress: overviewData.avg_stress_level?.toFixed(1),
+        modelVersion: modelPerf.modelVersion,
+        modelAccuracy: (modelPerf.trainingAccuracy * 100).toFixed(1) + '%'
       });
+
     } catch (error) {
       console.error('❌ Error loading analytics:', error);
     } finally {

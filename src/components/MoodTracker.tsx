@@ -16,7 +16,8 @@ import {
   trainModel, 
   getRecommendationMapping, 
   getModelStatus,
-  type RecommendationMapping 
+  type RecommendationMapping,
+  type PredictionResult
 } from '@/lib/moodModel';
 
 const moodEmojis = [
@@ -76,8 +77,8 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
-  const [modelStatus, setModelStatus] = useState<any>(null);
-  const [aiResult, setAiResult] = useState<{sentiment: string, confidence: number, stressLevel: number} | null>(null);
+  const [modelStatus, setModelStatus] = useState<ReturnType<typeof getModelStatus> | null>(null);
+  const [aiResult, setAiResult] = useState<PredictionResult | null>(null);
   const [showAiResult, setShowAiResult] = useState(false);
   const [recommendation, setRecommendation] = useState<EnhancedRecommendation | null>(null);
   const [analysisProgress, setAnalysisProgress] = useState(0);
@@ -86,11 +87,13 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
 
   // Load model status on component mount
   useEffect(() => {
-    const loadModelStatus = async () => {
+    const loadModelStatus = async (): Promise<void> => {
       try {
         const status = getModelStatus();
         setModelStatus(status);
-        console.log('🎯 Model Status:', status);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🎯 Model Status:', status);
+        }
       } catch (error) {
         console.error('Error loading model status:', error);
       }
@@ -124,7 +127,9 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       setRecommendation(null);
       setAnalysisProgress(0);
 
-      console.log('🧠 Starting enhanced TensorFlow.js mood analysis...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧠 Starting enhanced TensorFlow.js mood analysis...');
+      }
       
       // Progress simulation for better UX
       const progressInterval = setInterval(() => {
@@ -132,15 +137,21 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       }, 200);
       
       // Train model and predict mood using enhanced TensorFlow.js
-      console.log('🏋️ Ensuring model is trained...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🏋️ Ensuring model is trained...');
+      }
       await trainModel();
       setAnalysisProgress(50);
       
-      console.log('🔮 Making enhanced prediction...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔮 Making enhanced prediction...');
+      }
       const prediction = await predictMood(note.trim(), selectedMood);
       setAnalysisProgress(80);
       
-      console.log('🎯 Enhanced AI Analysis Result:', prediction);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 Enhanced AI Analysis Result:', prediction);
+      }
       setAiResult(prediction);
 
       // Generate enhanced recommendation based on stress level
@@ -192,7 +203,9 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
             note: note.trim() || null
           }
         });
-        console.log('✅ Edge function analysis completed');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Edge function analysis completed');
+        }
       } catch (edgeFunctionError) {
         console.warn('⚠️ Edge function failed, but local AI analysis succeeded:', edgeFunctionError);
       }
@@ -383,6 +396,11 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                             {!aiResult.sentiment.includes('positive') && !aiResult.sentiment.includes('stress') && '😐'}
                             <span className="capitalize">{aiResult.sentiment}</span>
                           </div>
+                          {aiResult.sentimentPolarity !== undefined && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Polarity: {aiResult.sentimentPolarity.toFixed(2)}
+                            </div>
+                          )}
                         </div>
                         <div className="bg-white rounded-lg p-3 border">
                           <div className="text-sm text-gray-600 mb-1">Stress Level</div>
@@ -390,8 +408,37 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
                             <Zap className="h-5 w-5" />
                             {aiResult.stressLevel}/5
                           </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Confidence: {(aiResult.confidence * 100).toFixed(1)}%
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Enhanced Model Performance Display */}
+                      {aiResult.modelAccuracy && (
+                        <div className="bg-white rounded-lg p-3 border">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="text-sm text-gray-600">Model Performance</div>
+                            <Badge variant="outline" className="text-xs">
+                              Enhanced AI v4.0
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <div className="text-gray-500">Model Accuracy</div>
+                              <div className="font-semibold text-green-700">
+                                {(aiResult.modelAccuracy * 100).toFixed(1)}%
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-500">Prediction Confidence</div>
+                              <div className="font-semibold text-blue-700">
+                                {(aiResult.confidence * 100).toFixed(1)}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm text-gray-600">
