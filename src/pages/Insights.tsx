@@ -8,7 +8,7 @@ import { type PredictionResult } from '@/lib/moodModel';
 import { Loader2 } from 'lucide-react';
 
 const InsightsPage = () => {
-  const { student } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const [latestAiAnalysis, setLatestAiAnalysis] = useState<PredictionResult | null>(null);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
@@ -16,30 +16,30 @@ const InsightsPage = () => {
 
   useEffect(() => {
     const fetchLatestMoodAnalysis = async () => {
-      if (!student?.id) {
-        console.log('No student ID found, skipping mood analysis fetch');
+      if (!user?.id) {
+        console.log('No user ID found, skipping mood analysis fetch');
         setLoading(false);
         return;
       }
 
-      console.log('Fetching mood analysis for student:', student.id);
+      console.log('Fetching mood analysis for user:', user.id);
 
       try {
-        // First, let's check all mood logs for this student
+        // First, let's check all mood logs for this user
         const { data: allMoodLogs, error: allError } = await supabase
           .from('mood_logs')
           .select('*')
-          .eq('student_id', student.id)
+          .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 
-        console.log('All mood logs for student:', allMoodLogs);
+        console.log('All mood logs for user:', allMoodLogs);
         console.log('All mood logs error:', allError);
 
         // Fetch the latest mood log with AI analysis
         const { data: moodLogs, error } = await supabase
           .from('mood_logs')
           .select('*')
-          .eq('student_id', student.id)
+          .eq('user_id', user.id)
           .not('ai_sentiment', 'is', null)
           .not('ai_stress_level', 'is', null)
           .order('created_at', { ascending: false })
@@ -99,7 +99,7 @@ const InsightsPage = () => {
     };
 
     fetchLatestMoodAnalysis();
-  }, [student?.id]);
+  }, [user?.id]);
 
   if (loading) {
     console.log('Insights page is in loading state');
@@ -118,7 +118,7 @@ const InsightsPage = () => {
     );
   }
 
-  console.log('Insights page rendering with data:', { latestAiAnalysis, selectedMood, studentId: student?.id });
+  console.log('Insights page rendering with data:', { latestAiAnalysis, selectedMood, userId: user?.id });
 
   return (
     <Layout>
@@ -134,7 +134,7 @@ const InsightsPage = () => {
           {/* Debug information in development */}
           {process.env.NODE_ENV === 'development' && (
             <div className={`mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-              <strong>Debug:</strong> Student ID: {student?.id || 'Not found'}, 
+              <strong>Debug:</strong> User ID: {user?.id || 'Not found'}, 
               Has AI Analysis: {latestAiAnalysis ? 'Yes' : 'No'}, 
               Selected Mood: {selectedMood || 'None'}
             </div>

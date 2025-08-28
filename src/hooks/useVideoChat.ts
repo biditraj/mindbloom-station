@@ -2,7 +2,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { videoChatService } from '@/lib/videoChatService';
 import { useToast } from '@/components/ui/use-toast';
-import SimplePeer from 'simple-peer';
+
+// Dynamic import for simple-peer to handle polyfills
+let SimplePeer: any = null;
+const getSimplePeer = async () => {
+  if (!SimplePeer) {
+    try {
+      const module = await import('simple-peer');
+      SimplePeer = module.default || module;
+      return SimplePeer;
+    } catch (error) {
+      console.error('Failed to load simple-peer:', error);
+      throw new Error('Video chat not available. Please refresh and try again.');
+    }
+  }
+  return SimplePeer;
+};
 
 export type ConnectionStatus = 
   | 'disconnected' 
@@ -225,7 +240,10 @@ export const useVideoChat = (userId: string | null) => {
     try {
       console.log('Creating peer connection:', { isInitiator, partnerId, sessionId });
       
-      const peer = new SimplePeer({
+      // Get SimplePeer dynamically
+      const SimplePeerClass = await getSimplePeer();
+      
+      const peer = new SimplePeerClass({
         initiator: isInitiator,
         trickle: false,
         stream: state.localStream,

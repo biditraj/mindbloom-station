@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -9,12 +9,25 @@ import { Loader2 } from 'lucide-react';
 import { type PredictionResult } from '@/lib/moodModel';
 
 const Index = () => {
-  const { student, loading } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [refreshInsights, setRefreshInsights] = useState(0);
   const [latestAiAnalysis, setLatestAiAnalysis] = useState<PredictionResult | null>(null);
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+
+  // Add timeout for loading state to prevent infinite loading
+  useEffect(() => {
+    if (loading) {
+      const timer = setTimeout(() => {
+        console.warn('Loading timeout reached, forcing continue...');
+        setLoadingTimeout(true);
+      }, 15000); // 15 second timeout
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
   const handleMoodLogged = (aiResult?: PredictionResult, moodLevel?: string) => {
     if (aiResult) {
@@ -28,18 +41,25 @@ const Index = () => {
     navigate('/insights');
   };
 
-  if (loading) {
+  if (loading && !loadingTimeout) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Loading MindBloom Station...</p>
+          <p className="text-xs text-gray-400 mt-2">If this takes too long, please refresh the page</p>
         </div>
       </div>
     );
   }
+  
+  // Show timeout message if loading takes too long
+  if (loadingTimeout) {
+    console.warn('Loading timeout occurred, proceeding without authentication');
+    return <Auth />;
+  }
 
-  if (!student) {
+  if (!user) {
     return <Auth />;
   }
 

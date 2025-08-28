@@ -55,7 +55,7 @@ const getEnhancedRecommendationForStressLevel = (stressLevel: number): EnhancedR
 
 const InsightsPanel: React.FC<InsightsPanelProps> = ({ latestAiAnalysis, selectedMood }) => {
   const [enhancedRecommendation, setEnhancedRecommendation] = useState<EnhancedRecommendation | null>(null);
-  const { student } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   // Update enhanced recommendation when latest AI analysis changes

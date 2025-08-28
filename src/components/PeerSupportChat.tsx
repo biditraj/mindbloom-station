@@ -26,19 +26,19 @@ const PeerSupportChat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { student } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (student) {
+    if (user) {
       connectToChat();
     }
     return () => {
       // Cleanup subscription
       supabase.removeAllChannels();
     };
-  }, [student, currentRoom]);
+  }, [user, currentRoom]);
 
   useEffect(() => {
     scrollToBottom();
@@ -49,7 +49,7 @@ const PeerSupportChat: React.FC = () => {
   };
 
   const connectToChat = async () => {
-    if (!student) return;
+    if (!user) return;
 
     try {
       setLoading(true);
@@ -105,13 +105,13 @@ const PeerSupportChat: React.FC = () => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !student) return;
+    if (!newMessage.trim() || !user) return;
 
     try {
       const { error } = await supabase
         .from('messages')
         .insert({
-          sender_id: student.id,
+          sender_id: user.id,
           content: newMessage.trim(),
           room_id: currentRoom,
           is_anonymous: true
@@ -155,7 +155,7 @@ const PeerSupportChat: React.FC = () => {
     return `${colors[colorIndex]} ${animals[animalIndex]}`;
   };
 
-  if (!student) {
+  if (!user) {
     return (
       <Card className="mood-card">
         <CardContent className="text-center py-8">
@@ -184,7 +184,7 @@ const PeerSupportChat: React.FC = () => {
                       Peer Support Chat
                     </CardTitle>
                     <CardDescription>
-                      Anonymous support from fellow students
+                      Anonymous support from fellow users
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
@@ -208,19 +208,19 @@ const PeerSupportChat: React.FC = () => {
                       <div
                         key={message.id}
                         className={`flex ${
-                          message.sender_id === student.id ? 'justify-end' : 'justify-start'
+                          message.sender_id === user.id ? 'justify-end' : 'justify-start'
                         } fade-in-up`}
                         style={{ animationDelay: `${index * 0.05}s` }}
                       >
                         <div
                           className={`max-w-[70%] rounded-lg px-3 py-2 ${
-                            message.sender_id === student.id
+                            message.sender_id === user.id
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-secondary'
                           }`}
                         >
                           <div className="text-xs opacity-70 mb-1">
-                            {message.sender_id === student.id 
+                            {message.sender_id === user.id 
                               ? 'You' 
                               : getAnonymousName(message.sender_id, index)
                             }
@@ -271,7 +271,7 @@ const PeerSupportChat: React.FC = () => {
                     <MessageCircle className="h-5 w-5 text-primary" />
                     Peer Support
                   </h2>
-                  <p className="text-xs text-muted-foreground">Anonymous student chat</p>
+                  <p className="text-xs text-muted-foreground">Anonymous user chat</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={connected ? "default" : "secondary"} className="text-xs">
@@ -308,19 +308,19 @@ const PeerSupportChat: React.FC = () => {
                   <div
                     key={message.id}
                     className={`flex ${
-                      message.sender_id === student.id ? 'justify-end' : 'justify-start'
+                      message.sender_id === user.id ? 'justify-end' : 'justify-start'
                     } fade-in-up`}
                     style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <div
                       className={`max-w-[85%] rounded-lg px-3 py-2 ${
-                        message.sender_id === student.id
+                        message.sender_id === user.id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-secondary'
                       }`}
                     >
                       <div className="text-xs opacity-70 mb-1">
-                        {message.sender_id === student.id 
+                        {message.sender_id === user.id 
                           ? 'You' 
                           : getAnonymousName(message.sender_id, index)
                         }

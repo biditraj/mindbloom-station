@@ -14,7 +14,7 @@ const ChatPage = () => {
       <div className={`bg-white/80 backdrop-blur-sm min-h-full ${isMobile ? 'p-3' : 'p-4'}`}>
         <div className={`mb-6 pb-4 border-b border-gray-200/60 ${isMobile ? 'mb-4 pb-3' : ''}`}>
           <h1 className={`font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent ${isMobile ? 'text-xl' : 'text-2xl'}`}>Peer Support Video Chat</h1>
-          <p className={`text-slate-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>Connect with peers for anonymous video support</p>
+          <p className={`text-slate-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>Connect with fellow students for peer support</p>
         </div>
         
         <Tabs defaultValue="live" className="w-full">

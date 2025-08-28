@@ -16,7 +16,7 @@ interface DiagnosticResult {
 const DatabaseDiagnostic: React.FC = () => {
   const [results, setResults] = useState<DiagnosticResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
-  const { student } = useAuth();
+  const { user } = useAuth();
 
   const runDiagnostics = async () => {
     setIsRunning(true);
@@ -231,12 +231,12 @@ const DatabaseDiagnostic: React.FC = () => {
             <p className="text-sm text-muted-foreground">
               Testing database connections and table availability
             </p>
-            {student && (
+            {user && (
               <div className="flex items-center gap-2 mt-1">
                 <User className="h-3 w-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  User ID: {student.id}
-                  {student.id.startsWith('temp_') && (
+                  User ID: {user.id}
+                  {user.id.startsWith('temp_') && (
                     <Badge variant="destructive" className="ml-2 text-xs">LOCAL MODE</Badge>
                   )}
                 </span>

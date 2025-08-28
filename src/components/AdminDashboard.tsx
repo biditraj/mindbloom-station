@@ -21,14 +21,14 @@ const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#10b981'];
 const AdminDashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const { student } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
 
   useEffect(() => {
-    if (student?.role === 'admin') {
+    if (user?.role === 'admin') {
       fetchDashboardData();
     }
-  }, [student]);
+  }, [user]);
 
   const fetchDashboardData = async () => {
     try {
@@ -140,7 +140,7 @@ const AdminDashboard: React.FC = () => {
     }));
   };
 
-  if (student?.role !== 'admin') {
+  if (user?.role !== 'admin') {
     return (
       <Card className="mood-card">
         <CardContent className="text-center py-8">

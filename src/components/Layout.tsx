@@ -25,7 +25,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { student, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -36,8 +36,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { id: 'history', label: 'Mood History', icon: Calendar, path: '/history' },
     { id: 'statistics', label: 'Your Mood Statistics', icon: TrendingUp, path: '/mood-statistics' },
     { id: 'insights', label: 'Insights', icon: Brain, path: '/insights' },
-    { id: 'chat', label: 'Peer Support', icon: MessageCircle, path: '/chat' },
-    ...(student?.role === 'admin' ? [
+    { id: 'chat', label: 'Peer Video Chat', icon: MessageCircle, path: '/chat' },
+
+    ...(user?.role === 'admin' ? [
       { id: 'dashboard', label: 'Admin Dashboard', icon: Settings, path: '/admin' }
     ] : [])
   ];
@@ -61,13 +62,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="relative">
           <Avatar className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 ring-2 ring-white shadow-lg">
             <AvatarFallback className="text-white font-bold">
-              {student?.anonymous_id?.slice(0, 2).toUpperCase() || 'IG'}
+              {user?.name?.slice(0, 2).toUpperCase() || user?.email?.slice(0, 2).toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
           <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full ring-2 ring-white"></div>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-slate-800 truncate">{student?.anonymous_id || 'Iddika Gaspar'}</h3>
+          <h3 className="font-bold text-slate-800 truncate">{user?.name || user?.email || 'User'}</h3>
           <p className="text-xs text-slate-500 truncate">Wellness Tracker</p>
         </div>
         {isMobile && (

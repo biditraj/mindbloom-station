@@ -30,8 +30,8 @@ import {
 
 const VideoChat: React.FC = () => {
   // Hooks
-  const { student } = useAuth();
-  const { state, actions } = useVideoChat(student?.id || null);
+  const { user, loading } = useAuth();
+  const { state, actions } = useVideoChat(user?.id || null);
   
   // Local state for UI
   const [reportReason, setReportReason] = useState('');
@@ -67,7 +67,21 @@ const VideoChat: React.FC = () => {
     }
   };
 
-  if (!student) {
+  if (loading) {
+    return (
+      <Card className="mood-card">
+        <CardContent className="text-center py-8">
+          <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
+          <h3 className="font-medium mb-2">Loading...</h3>
+          <p className="text-muted-foreground text-sm">
+            Checking authentication status...
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user) {
     return (
       <Card className="mood-card">
         <CardContent className="text-center py-8">
@@ -81,37 +95,7 @@ const VideoChat: React.FC = () => {
     );
   }
 
-  // Check if user is in local/offline mode (temporary student ID)
-  const isLocalMode = student.id.startsWith('temp_');
-  
-  if (isLocalMode) {
-    return (
-      <Card className="mood-card">
-        <CardContent className="text-center py-8">
-          <AlertTriangle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
-          <h3 className="font-medium mb-2">Video Chat Unavailable</h3>
-          <p className="text-muted-foreground text-sm mb-4">
-            Video chat requires a database connection. You're currently in offline mode.
-          </p>
-          <div className="space-y-2 text-xs text-muted-foreground">
-            <p>To use video chat:</p>
-            <p>1. Check your internet connection</p>
-            <p>2. Log out and log back in</p>
-            <p>3. Try refreshing the page</p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh Page
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -138,7 +122,7 @@ const VideoChat: React.FC = () => {
                 Video Chat
               </CardTitle>
               <CardDescription>
-                Anonymous video support with peers
+                Video support with fellow students
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -404,7 +388,7 @@ const VideoChat: React.FC = () => {
           <div className="space-y-3 text-sm">
             <div className="flex items-start gap-2">
               <Shield className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <p>Your identity remains completely anonymous</p>
+              <p>Connect with other students safely and securely</p>
             </div>
             <div className="flex items-start gap-2">
               <Video className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />

@@ -24,7 +24,7 @@ interface ExtendedStats extends MoodHistoryStats {
 }
 
 const MoodStatistics = () => {
-  const { student, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { moodLogs, statistics, loading: historyLoading } = useMoodHistory();
   const [extendedStats, setExtendedStats] = useState<ExtendedStats | null>(null);
   const [loading, setLoading] = useState(true);

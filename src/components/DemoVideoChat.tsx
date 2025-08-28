@@ -39,7 +39,7 @@ const DemoVideoChat: React.FC = () => {
   }>({ cameras: [], microphones: [] });
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
-  const { student } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   // Check if WebRTC is supported
@@ -445,7 +445,7 @@ const DemoVideoChat: React.FC = () => {
     }
   }, []);
 
-  if (!student) {
+  if (!user) {
     return (
       <Card className="mood-card">
         <CardContent className="text-center py-8">
@@ -455,8 +455,8 @@ const DemoVideoChat: React.FC = () => {
             You need to be logged in to access video chat.
           </p>
           <div className="text-xs text-muted-foreground">
-            <p>Debug: No student object found</p>
-            <p>Auth status: {student === null ? 'null' : 'undefined'}</p>
+            <p>Debug: No user object found</p>
+            <p>Auth status: {user === null ? 'null' : 'undefined'}</p>
           </div>
         </CardContent>
       </Card>
@@ -489,9 +489,9 @@ const DemoVideoChat: React.FC = () => {
                 {status === 'disconnected' && 'Disconnected'}
                 {status === 'error' && 'Error'}
               </Badge>
-              {student && (
+              {user && (
                 <div className="text-xs text-muted-foreground">
-                  User: {student.anonymous_id}
+                  User: {user.email}
                 </div>
               )}
             </div>

@@ -14,16 +14,41 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
+  
   define: {
     // Fix for simple-peer: global is not defined
     global: 'globalThis',
+    // Fix for process.env access in browser
+    'process.env.NODE_DEBUG': 'undefined',
+    'process.env.NODE_ENV': '"development"',
   },
   optimizeDeps: {
-    include: ['simple-peer'],
+    include: ['simple-peer', 'react', 'react-dom', 'react-dom/client', 'process'],
+    exclude: ['sonner', '@radix-ui/react-tooltip'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis'
+      }
+    }
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-dom/client']
+        }
+      }
+    }
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "events": "rollup-plugin-node-polyfills/polyfills/events",
+      "util": "rollup-plugin-node-polyfills/polyfills/util",
+      "process": "rollup-plugin-node-polyfills/polyfills/process-es6",
+      "buffer": "rollup-plugin-node-polyfills/polyfills/buffer-es6",
+      "stream": "rollup-plugin-node-polyfills/polyfills/stream"
+    },
   },
 }));

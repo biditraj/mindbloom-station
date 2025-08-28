@@ -10,15 +10,15 @@ interface NavigationProps {
 }
 
 const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) => {
-  const { student, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const menuItems = [
     { id: 'mood', label: 'Mood Check-in', icon: Heart, description: 'Track your daily mood' },
     { id: 'history', label: 'History', icon: History, description: 'View your mood history' },
     { id: 'statistics', label: 'Statistics', icon: TrendingUp, description: 'Your mood statistics' },
     { id: 'insights', label: 'Insights', icon: Brain, description: 'AI-powered recommendations' },
-    { id: 'chat', label: 'Peer Support', icon: MessageCircle, description: 'Anonymous chat' },
-    ...(student?.role === 'admin' ? [
+
+    ...(user?.role === 'admin' ? [
       { id: 'dashboard', label: 'Dashboard', icon: BarChart3, description: 'Admin analytics' }
     ] : [])
   ];
@@ -57,11 +57,11 @@ const Navigation: React.FC<NavigationProps> = ({ currentView, onViewChange }) =>
 
           {/* User Info & Logout */}
           <div className="flex items-center gap-3">
-            {student && (
+            {user && (
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{student.anonymous_id}</span>
-                {student.role === 'admin' && (
+                <span className="text-sm font-medium">{user.name || user.email}</span>
+                {user.role === 'admin' && (
                   <Badge variant="secondary">Admin</Badge>
                 )}
               </div>

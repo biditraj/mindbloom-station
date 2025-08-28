@@ -165,7 +165,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
   const [loading, setLoading] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const [hoveredMood, setHoveredMood] = useState<string | null>(null);
-  const { student } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -194,7 +194,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       return;
     }
 
-    if (!student) {
+    if (!user) {
       toast({
         title: "Please log in first",
         description: "Authentication required to save mood data",
@@ -256,7 +256,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
 
       if (process.env.NODE_ENV === 'development') {
         console.log('📊 About to insert mood log with data:', {
-          student_id: student.id,
+          user_id: user.id,
           mood_name: selectedMood,
           mood_level: moodLevel,
           note: note.trim() || null,
@@ -269,7 +269,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       const { data: moodLogData, error: moodLogError } = await supabase
         .from('mood_logs')
         .insert({
-          student_id: student.id,
+          user_id: user.id,
           mood_level: moodLevel,
           note: note.trim() || null,
           ai_sentiment: prediction.sentiment,
@@ -349,8 +349,8 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ onMoodLogged }) => {
       console.error('Debug info:', {
         selectedMood,
         noteLength: note.length,
-        studentExists: !!student,
-        studentId: student?.id
+        studentExists: !!user,
+        studentId: user?.id
       });
       
       let errorMessage = "Please try again";

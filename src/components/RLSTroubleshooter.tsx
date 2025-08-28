@@ -15,7 +15,7 @@ interface RLSTest {
 }
 
 const RLSTroubleshooter: React.FC = () => {
-  const { student } = useAuth();
+  const { user } = useAuth();
   const [tests, setTests] = useState<RLSTest[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -31,8 +31,8 @@ const RLSTroubleshooter: React.FC = () => {
   };
 
   const runRLSTests = async () => {
-    if (!student) {
-      updateTest('auth', 'error', 'No student authenticated');
+    if (!user) {
+      updateTest('auth', 'error', 'No user authenticated');
       return;
     }
 
@@ -40,22 +40,22 @@ const RLSTroubleshooter: React.FC = () => {
     setTests([]);
 
     try {
-      // Test 1: Check student record access
-      updateTest('student-access', 'running', 'Testing student record access...');
+      // Test 1: Check user record access
+      updateTest('user-access', 'running', 'Testing user record access...');
       try {
         const { data, error } = await supabase
-          .from('students')
+          .from('users')
           .select('id, anonymous_id, role')
-          .eq('id', student.id)
+          .eq('id', user.id)
           .single();
 
         if (error) {
-          updateTest('student-access', 'error', `Failed: ${error.message}`, error);
+          updateTest('user-access', 'error', `Failed: ${error.message}`, error);
         } else {
-          updateTest('student-access', 'success', 'Student record accessible', data);
+          updateTest('user-access', 'success', 'Student record accessible', data);
         }
       } catch (error: any) {
-        updateTest('student-access', 'error', `Error: ${error.message}`, error);
+        updateTest('user-access', 'error', `Error: ${error.message}`, error);
       }
 
       // Test 2: Test RLS config function
@@ -63,7 +63,7 @@ const RLSTroubleshooter: React.FC = () => {
       try {
         await (supabase as any).rpc('set_config', {
           setting_name: 'app.anonymous_id',
-          setting_value: student.anonymous_id
+          setting_value: user.anonymous_id
         });
         updateTest('rls-config', 'success', 'RLS config function works');
       } catch (error: any) {
@@ -76,14 +76,14 @@ const RLSTroubleshooter: React.FC = () => {
         // Try to set RLS config first
         await (supabase as any).rpc('set_config', {
           setting_name: 'app.anonymous_id',
-          setting_value: student.anonymous_id
+          setting_value: user.anonymous_id
         });
 
         // Then test queue access
         const { data, error } = await supabase
           .from('matchmaking_queue')
           .select('id')
-          .eq('student_id', student.id)
+          .eq('user_id', user.id)
           .limit(1);
 
         if (error) {
@@ -120,7 +120,7 @@ const RLSTroubleshooter: React.FC = () => {
   };
 
   const fixRLSIssues = async () => {
-    if (!student || student.id.startsWith('temp_')) {
+    if (!user || user.id.startsWith('temp_')) {
       alert('Cannot fix RLS for temporary/local mode users. Please refresh and log in with a stable internet connection.');
       return;
     }
@@ -130,7 +130,7 @@ const RLSTroubleshooter: React.FC = () => {
       // Set the RLS configuration
       await (supabase as any).rpc('set_config', {
         setting_name: 'app.anonymous_id',
-        setting_value: student.anonymous_id
+        setting_value: user.anonymous_id
       });
 
       // Re-run tests
@@ -155,7 +155,7 @@ const RLSTroubleshooter: React.FC = () => {
     }
   };
 
-  if (!student) {
+  if (!user) {
     return (
       <Card>
         <CardContent className="text-center py-8">
@@ -189,7 +189,7 @@ const RLSTroubleshooter: React.FC = () => {
             </Button>
             <Button 
               onClick={fixRLSIssues} 
-              disabled={isRunning || student.id.startsWith('temp_')}
+              disabled={isRunning || user.id.startsWith('temp_')}
               size="sm"
               variant="default"
             >
@@ -199,7 +199,7 @@ const RLSTroubleshooter: React.FC = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {student.id.startsWith('temp_') && (
+        {user.id.startsWith('temp_') && (
           <Alert className="mb-4" variant="destructive">
             <Shield className="h-4 w-4" />
             <AlertDescription>
